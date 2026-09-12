@@ -14,6 +14,8 @@ env/
 # Build outputs
 dist/
 build/
+frontend/dist/
+.pytest_cache/
 
 # Environment variables
 .env

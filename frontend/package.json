@@ -1,5 +1,5 @@
 {
-  "name": "aethergrid-ai",
+  "name": "nimbus-renewable-grid",
   "private": true,
   "version": "1.0.0",
   "type": "module",
@@ -16,6 +16,12 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.5.6",
+    "postcss": "^8.5.28",
+    "tailwindcss": "^3.4.17",
     "vite": "^6.2.0"
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-darwin-arm64": "^4.63.1"
   }
 }

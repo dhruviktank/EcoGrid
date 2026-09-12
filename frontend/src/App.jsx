@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import Sidebar from './components/Sidebar';
 import Header from './components/Header';
-import MetricsCards from './components/MetricsCards';
-import InteractiveChart from './components/InteractiveChart';
-import GridActionsPanel from './components/GridActionsPanel';
-import BatteryStorageWidget from './components/BatteryStorageWidget';
+import PlantOverviewScreen from './components/PlantOverviewScreen';
+import MultiSiteFleetScreen from './components/MultiSiteFleetScreen';
+import GridAdvisorScreen from './components/GridAdvisorScreen';
+import ModelSkillScreen from './components/ModelSkillScreen';
 import ScenarioSandbox from './components/ScenarioSandbox';
 import SCADAExportModal from './components/SCADAExportModal';
 
@@ -71,21 +72,25 @@ const DEFAULT_SITES = [
 ];
 
 export default function App() {
+  const [activeTab, setActiveTab] = useState('overview');
   const [sites, setSites] = useState(DEFAULT_SITES);
   const [selectedSiteId, setSelectedSiteId] = useState('bhadla-solar');
   const [horizonHours, setHorizonHours] = useState(72);
-  const [activeModel, setActiveModel] = useState('ensemble');
+  const [persona, setPersona] = useState('operator');
   const [scenarioShocks, setScenarioShocks] = useState({
     cloud_multiplier: 1.0,
     wind_multiplier: 1.0,
     temp_delta: 0.0
   });
 
+  const [useLiveApi, setUseLiveApi] = useState(false);
   const [forecastData, setForecastData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isExportOpen, setIsExportOpen] = useState(false);
+  const [isSandboxOpen, setIsSandboxOpen] = useState(false);
+  const [benchmarkData, setBenchmarkData] = useState(null);
 
-  // Fetch sites list on startup
+  // Fetch sites list and benchmark on startup
   useEffect(() => {
     fetch('/api/sites')
       .then(res => res.ok ? res.json() : null)
@@ -94,13 +99,20 @@ export default function App() {
           setSites(data.sites);
         }
       })
-      .catch(() => {
-        // graceful fallback to DEFAULT_SITES
-      });
+      .catch(() => {});
+
+    fetch('/api/models/benchmark')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data && data.models) {
+          setBenchmarkData(data.models);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   // Fetch forecast whenever site, horizon, or shocks change
-  const fetchForecast = (shocksToUse = scenarioShocks) => {
+  const fetchForecast = (shocksToUse = scenarioShocks, liveApiToUse = useLiveApi) => {
     setIsLoading(true);
     const days = horizonHours === 24 ? 1 : horizonHours === 48 ? 2 : 3;
 
@@ -110,7 +122,8 @@ export default function App() {
       body: JSON.stringify({
         site_id: selectedSiteId,
         forecast_days: days,
-        scenario_shocks: shocksToUse
+        scenario_shocks: shocksToUse,
+        use_live_api: liveApiToUse
       })
     })
       .then(res => res.json())
@@ -125,11 +138,16 @@ export default function App() {
   };
 
   useEffect(() => {
-    fetchForecast(scenarioShocks);
-  }, [selectedSiteId, horizonHours]);
+    fetchForecast(scenarioShocks, useLiveApi);
+  }, [selectedSiteId, horizonHours, useLiveApi]);
 
   const handleApplyShocks = (newShocks) => {
-    fetchForecast(newShocks);
+    fetchForecast(newShocks, useLiveApi);
+  };
+
+  const handleToggleLiveApi = (val) => {
+    setUseLiveApi(val);
+    fetchForecast(scenarioShocks, val);
   };
 
   const handleResetShocks = () => {
@@ -141,94 +159,85 @@ export default function App() {
   const currentSite = sites.find(s => s.id === selectedSiteId) || sites[0];
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div className="min-h-screen bg-slate-50 font-body-md text-on-surface antialiased flex">
       
-      {/* Navigation Header */}
-      <Header
-        sites={sites}
-        selectedSiteId={selectedSiteId}
-        onSelectSite={setSelectedSiteId}
-        horizonHours={horizonHours}
-        onChangeHorizon={setHorizonHours}
-        activeModel={activeModel}
-        onChangeModel={setActiveModel}
+      {/* 1. Left Fixed Sidebar */}
+      <Sidebar
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
         onOpenExport={() => setIsExportOpen(true)}
-        weatherSource={forecastData?.weather_source}
+        onOpenSandbox={() => setIsSandboxOpen(true)}
       />
 
-      {/* Main Content Area */}
-      <main style={{ flex: 1, paddingBottom: '30px' }}>
+      {/* 2. Main Canvas Column */}
+      <div className="pl-72 flex flex-col min-h-screen flex-1 w-full bg-slate-50/60">
         
-        {/* Executive Metrics Cards */}
-        <MetricsCards
-          summary={forecastData?.grid_summary}
-          site={currentSite}
-          forecastTimeline={forecastData?.forecast_timeline}
+        {/* Fixed Top Header */}
+        <Header
+          sites={sites}
+          selectedSiteId={selectedSiteId}
+          onSelectSite={setSelectedSiteId}
           horizonHours={horizonHours}
+          onChangeHorizon={setHorizonHours}
+          weatherSource={forecastData?.weather_source}
+          persona={persona}
+          onChangePersona={setPersona}
+          useLiveApi={useLiveApi}
+          onToggleLiveApi={handleToggleLiveApi}
         />
 
-        {/* Primary Interactive Visualization */}
-        <InteractiveChart
-          forecastTimeline={forecastData?.forecast_timeline}
-          dispatchTimeline={forecastData?.dispatch_timeline}
-          site={currentSite}
-          horizonHours={horizonHours}
-          activeModel={activeModel}
-        />
+        {/* Dynamic Screen Viewport */}
+        <main className="w-full pt-20 px-6 flex-1 max-w-[1680px] mx-auto">
+          {activeTab === 'overview' && (
+            <PlantOverviewScreen
+              site={currentSite}
+              forecastData={forecastData}
+              horizonHours={horizonHours}
+              onChangeHorizon={setHorizonHours}
+              onNavigateTab={setActiveTab}
+            />
+          )}
 
-        {/* Operational Control Deck */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
-          gap: '16px',
-          margin: '0 20px'
-        }}>
-          {/* Grid Actions & Dispatch Feed */}
-          <GridActionsPanel
-            criticalActions={forecastData?.critical_actions}
-            dispatchTimeline={forecastData?.dispatch_timeline}
-            horizonHours={horizonHours}
-          />
+          {activeTab === 'multi-site-fleet' && (
+            <MultiSiteFleetScreen
+              onSelectSite={(id) => {
+                setSelectedSiteId(id);
+                setActiveTab('overview');
+              }}
+              onNavigateTab={setActiveTab}
+            />
+          )}
 
-          {/* BESS Battery Storage Telemetry */}
-          <BatteryStorageWidget
-            site={currentSite}
-            dispatchTimeline={forecastData?.dispatch_timeline}
-            horizonHours={horizonHours}
-          />
+          {activeTab === 'grid-advisor-dispatch' && (
+            <GridAdvisorScreen
+              forecastData={forecastData}
+              site={currentSite}
+            />
+          )}
 
-          {/* Scenario Stress-Testing Sandbox */}
-          <ScenarioSandbox
-            shocks={scenarioShocks}
-            onChangeShocks={setScenarioShocks}
-            onApplyShocks={handleApplyShocks}
-            onResetShocks={handleResetShocks}
-            isLoading={isLoading}
-          />
-        </div>
+          {activeTab === 'model-skill-accuracy' && (
+            <ModelSkillScreen
+              benchmarkData={benchmarkData}
+            />
+          )}
+        </main>
 
-      </main>
+        {/* Global Footer */}
+        <footer className="py-4 px-8 border-t border-slate-200 text-xs text-slate-500 flex flex-wrap justify-between items-center bg-white/80 backdrop-blur-md">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-slate-800">GridSense AI • Nimbus Platform</span>
+            <span>·</span>
+            <span>Forecasting the grid's next 72 hours, before the weather decides for us</span>
+            <span>·</span>
+            <span className="text-emerald-600 font-semibold">Team Dev29</span>
+          </div>
+          <div className="flex items-center gap-2 text-emerald-700">
+            <span className="material-symbols-outlined text-sm">verified</span>
+            <span>Production SCADA Engine Verified (Offline Resilient)</span>
+          </div>
+        </footer>
 
-      {/* Footer */}
-      <footer style={{
-        padding: '16px 24px',
-        borderTop: '1px solid var(--border-subtle)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        fontSize: '0.75rem',
-        color: 'var(--text-dim)',
-        margin: '0 20px'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span>AetherGrid AI Intelligence Platform</span>
-          <span>•</span>
-          <span>Open-Meteo Satellite Reanalysis & High-Resolution Forecast Engine</span>
-        </div>
-        <div>
-          <span>Multi-Asset Grid Synchronization Active (50/60 Hz nominal)</span>
-        </div>
-      </footer>
+      </div>
 
       {/* SCADA Export Modal */}
       <SCADAExportModal
@@ -238,6 +247,39 @@ export default function App() {
         siteName={currentSite?.name}
         dispatchTimeline={forecastData?.dispatch_timeline}
       />
+
+      {/* Scenario Stress-Testing Modal */}
+      {isSandboxOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl border border-slate-200 animate-in fade-in zoom-in duration-200">
+            <div className="flex justify-between items-center mb-4 pb-2 border-b border-slate-100">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <span className="material-symbols-outlined text-emerald-600">tune</span>
+                Scenario Stress-Testing Sandbox
+              </h3>
+              <button 
+                onClick={() => setIsSandboxOpen(false)}
+                className="text-slate-400 hover:text-slate-700 text-lg font-bold w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100"
+              >
+                ✕
+              </button>
+            </div>
+            <ScenarioSandbox
+              shocks={scenarioShocks}
+              onChangeShocks={setScenarioShocks}
+              onApplyShocks={(shocks) => {
+                handleApplyShocks(shocks);
+                setIsSandboxOpen(false);
+              }}
+              onResetShocks={() => {
+                handleResetShocks();
+                setIsSandboxOpen(false);
+              }}
+              isLoading={isLoading}
+            />
+          </div>
+        </div>
+      )}
 
     </div>
   );

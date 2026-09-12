@@ -1,0 +1,23 @@
+{
+  "solar": {
+    "asset": "solar",
+    "mae_baseline": 1.53,
+    "rmse_baseline": 2.98,
+    "mae_xgb": 0.39,
+    "rmse_xgb": 0.74,
+    "skill_score_pct": 74.51,
+    "coverage_picp": 93.71069182389937,
+    "sharpness_pinaw": 13.086262702941895
+  },
+  "wind": {
+    "asset": "wind",
+    "mae_baseline": 1.19,
+    "rmse_baseline": 1.62,
+    "mae_xgb": 0.27,
+    "rmse_xgb": 0.65,
+    "skill_score_pct": 77.31,
+    "coverage_picp": 78.77574370709382,
+    "sharpness_pinaw": 27.66284942626953
+  },
+  "status": "All XGBoost quantile models trained and serialized successfully."
+}

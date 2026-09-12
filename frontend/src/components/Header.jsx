@@ -1,162 +1,198 @@
-import React from 'react';
-import { Zap, Sun, Wind, Activity, Download, Layers, Clock, Globe } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 
 export default function Header({
-  sites,
+  sites = [],
   selectedSiteId,
   onSelectSite,
   horizonHours,
   onChangeHorizon,
-  activeModel,
-  onChangeModel,
-  onOpenExport,
-  weatherSource
+  weatherSource,
+  persona,
+  onChangePersona,
+  useLiveApi = false,
+  onToggleLiveApi
 }) {
-  const currentSite = sites.find(s => s.id === selectedSiteId) || sites[0];
+  const [isSiteDropdownOpen, setIsSiteDropdownOpen] = useState(false);
+  const [timeString, setTimeString] = useState({ ist: '14:32 IST', utc: '09:02 UTC' });
+
+  const currentSite = sites.find(s => s.id === selectedSiteId) || sites[0] || {
+    name: 'Bhadla Solar Park',
+    region: 'Rajasthan',
+    capacity_mw: 2245,
+    type: 'solar'
+  };
+
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      const istHours = String((now.getUTCHours() + 5 + Math.floor((now.getUTCMinutes() + 30) / 60)) % 24).padStart(2, '0');
+      const istMins = String((now.getUTCMinutes() + 30) % 60).padStart(2, '0');
+      const utcHours = String(now.getUTCHours()).padStart(2, '0');
+      const utcMins = String(now.getUTCMinutes()).padStart(2, '0');
+      setTimeString({
+        ist: `${istHours}:${istMins} IST`,
+        utc: `${utcHours}:${utcMins} UTC`
+      });
+    };
+    updateTime();
+    const timer = setInterval(updateTime, 10000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const getSiteIcon = (type) => {
+    if (type === 'wind') return 'air';
+    if (type === 'hybrid') return 'battery_charging_full';
+    return 'wb_sunny';
+  };
 
   return (
-    <header className="glass-panel" style={{ padding: '14px 24px', margin: '16px 20px', borderBottom: '1px solid rgba(148, 163, 184, 0.15)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+    <header className="fixed top-0 left-72 right-0 h-16 bg-white/95 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] border-b border-slate-200/80 z-40">
+      <div className="h-16 w-full px-6 flex items-center justify-between">
         
-        {/* Left: Brand & Live status */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{
-            width: '42px',
-            height: '42px',
-            borderRadius: '10px',
-            background: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 0 15px rgba(6, 182, 212, 0.4)'
-          }}>
-            <Zap size={24} color="#ffffff" />
+        {/* Left: Site Selector & Weather Condition */}
+        <div className="flex items-center gap-4">
+          {/* Site Selector Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setIsSiteDropdownOpen(!isSiteDropdownOpen)}
+              className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200/80 rounded-lg text-slate-800 transition-colors cursor-pointer border border-slate-200"
+            >
+              <span className={`material-symbols-outlined text-lg ${currentSite.type === 'wind' ? 'text-cyan-600' : 'text-amber-500'}`}>
+                {getSiteIcon(currentSite.type)}
+              </span>
+              <span className="text-sm font-semibold text-slate-900">
+                {currentSite.name}
+              </span>
+              <span className="text-xs text-slate-500 hidden sm:inline">
+                {currentSite.region} · {currentSite.capacity_mw} MW
+              </span>
+              <span className="material-symbols-outlined text-slate-400 text-sm">
+                arrow_drop_down
+              </span>
+            </button>
+
+            {/* Dropdown Menu */}
+            {isSiteDropdownOpen && (
+              <div 
+                className="absolute left-0 mt-2 w-72 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 overflow-hidden"
+              >
+                <div className="px-3 py-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                  Select Grid Asset
+                </div>
+                {sites.map((site) => (
+                  <button
+                    key={site.id}
+                    onClick={() => {
+                      onSelectSite(site.id);
+                      setIsSiteDropdownOpen(false);
+                    }}
+                    className={`w-full px-3 py-2 text-left flex items-center justify-between hover:bg-slate-50 transition-colors ${
+                      site.id === selectedSiteId ? 'bg-emerald-50 text-emerald-900 font-semibold' : 'text-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className={`material-symbols-outlined text-sm ${site.type === 'wind' ? 'text-cyan-600' : 'text-amber-500'}`}>
+                        {getSiteIcon(site.type)}
+                      </span>
+                      <div>
+                        <div className="text-xs font-semibold">{site.name}</div>
+                        <div className="text-[10px] text-slate-500">{site.region} ({site.capacity_mw} MW)</div>
+                      </div>
+                    </div>
+                    {site.id === selectedSiteId && (
+                      <span className="material-symbols-outlined text-emerald-600 text-sm">check</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '1.25rem', fontWeight: '800', letterSpacing: '-0.02em', background: 'linear-gradient(to right, #f8fafc, #94a3b8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                AETHERGRID AI
-              </span>
-              <span style={{
-                fontSize: '0.65rem',
-                fontWeight: '700',
-                padding: '2px 8px',
-                borderRadius: '9999px',
-                background: 'rgba(6, 182, 212, 0.15)',
-                color: '#22d3ee',
-                border: '1px solid rgba(6, 182, 212, 0.3)',
-                letterSpacing: '0.05em'
-              }}>
-                v2.4 PRO
-              </span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              <span className="live-indicator"></span>
-              <span>GRID STABILITY MONITOR</span>
-              <span>•</span>
-              <span style={{ color: '#38bdf8' }}>{weatherSource || 'Ingesting Open-Meteo Satellite Feed'}</span>
-            </div>
+
+          {/* Live Data Mode Toggle */}
+          <button
+            onClick={() => onToggleLiveApi && onToggleLiveApi(!useLiveApi)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer ${
+              useLiveApi 
+                ? 'bg-emerald-50 text-emerald-800 border-emerald-300 ring-2 ring-emerald-500/20 shadow-sm' 
+                : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200/80'
+            }`}
+            title={useLiveApi ? "Currently querying Open-Meteo Live API. Click to use offline local dataset." : "Currently using local offline dummy SCADA. Click to enable Open-Meteo Live API."}
+          >
+            <span className={`w-2 h-2 rounded-full ${useLiveApi ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+            <span>{useLiveApi ? 'Live API: Open-Meteo' : 'Mode: Local SCADA'}</span>
+          </button>
+
+          {/* Live Weather Badge */}
+          <div className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 rounded-lg text-slate-700 border border-slate-200/60 text-xs font-medium">
+            <span className="material-symbols-outlined text-emerald-600 text-base">thermostat</span>
+            <span>{useLiveApi ? 'Live Forecast' : '34°C Clear Sky'}</span>
+            <span className="text-slate-400 text-[10px] ml-1">{useLiveApi ? 'Real-Time' : 'GHI: 842 W/m²'}</span>
           </div>
         </div>
 
-        {/* Center: Plant Selector & Horizon Switcher */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-          {/* Facility Selector */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(30, 41, 59, 0.6)', padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-            <Globe size={16} color="#94a3b8" />
-            <select
-              value={selectedSiteId}
-              onChange={(e) => onSelectSite(e.target.value)}
-              style={{
-                background: 'transparent',
-                color: '#f8fafc',
-                border: 'none',
-                outline: 'none',
-                fontWeight: '600',
-                fontSize: '0.85rem',
-                cursor: 'pointer'
-              }}
-            >
-              {sites.map((site) => (
-                <option key={site.id} value={site.id} style={{ background: '#0f172a', color: '#f8fafc' }}>
-                  {site.name} ({site.capacity_mw} MW {site.type.toUpperCase()})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Horizon Toggle */}
-          <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(30, 41, 59, 0.6)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-            {[24, 48, 72].map((hours) => (
+        {/* Right: Horizon, Time, Persona, & Operator */}
+        <div className="flex items-center gap-4">
+          
+          {/* Horizon Switcher (24h / 48h / 72h) */}
+          <div className="inline-flex p-1 bg-slate-100 rounded-lg gap-1 border border-slate-200/60">
+            {[24, 48, 72].map((h) => (
               <button
-                key={hours}
-                onClick={() => onChangeHorizon(hours)}
-                style={{
-                  padding: '4px 10px',
-                  borderRadius: '6px',
-                  border: 'none',
-                  fontSize: '0.75rem',
-                  fontWeight: '700',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  background: horizonHours === hours ? '#0284c7' : 'transparent',
-                  color: horizonHours === hours ? '#ffffff' : '#94a3b8',
-                  boxShadow: horizonHours === hours ? '0 0 10px rgba(2, 132, 199, 0.5)' : 'none'
-                }}
+                key={h}
+                onClick={() => onChangeHorizon(h)}
+                className={`px-2.5 py-1 text-xs font-semibold rounded transition-all ${
+                  horizonHours === h
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
               >
-                {hours}H
+                {h}h
               </button>
             ))}
           </div>
 
-          {/* Model Layer Selector */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(30, 41, 59, 0.6)', padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-            <Layers size={15} color="#94a3b8" />
-            <select
-              value={activeModel}
-              onChange={(e) => onChangeModel(e.target.value)}
-              style={{
-                background: 'transparent',
-                color: '#f8fafc',
-                border: 'none',
-                outline: 'none',
-                fontWeight: '500',
-                fontSize: '0.8rem',
-                cursor: 'pointer'
-              }}
-            >
-              <option value="ensemble" style={{ background: '#0f172a' }}>Hybrid Ensemble (P10/P50/P90)</option>
-              <option value="xgboost" style={{ background: '#0f172a' }}>XGBoost Gradient Boost</option>
-              <option value="lstm" style={{ background: '#0f172a' }}>PyTorch LSTM Recurrent NN</option>
-              <option value="physics" style={{ background: '#0f172a' }}>Physical Irradiance/Aerodynamic</option>
-            </select>
+          {/* Persona Switcher */}
+          <div className="hidden md:flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200/60 text-xs">
+            {[
+              { id: 'operator', label: 'Operator' },
+              { id: 'planner', label: 'Planner' },
+              { id: 'trader', label: 'Trader' }
+            ].map((p) => (
+              <button
+                key={p.id}
+                onClick={() => onChangePersona && onChangePersona(p.id)}
+                className={`px-2 py-1 rounded font-medium transition-all ${
+                  persona === p.id 
+                    ? 'bg-white text-slate-900 shadow-sm font-semibold' 
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
           </div>
-        </div>
 
-        {/* Right: Actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <button
-            onClick={onOpenExport}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '8px 14px',
-              borderRadius: '8px',
-              background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.2) 0%, rgba(59, 130, 246, 0.2) 100%)',
-              border: '1px solid rgba(6, 182, 212, 0.4)',
-              color: '#22d3ee',
-              fontWeight: '600',
-              fontSize: '0.8rem',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease'
-            }}
-            onMouseOver={(e) => e.currentTarget.style.borderColor = '#22d3ee'}
-            onMouseOut={(e) => e.currentTarget.style.borderColor = 'rgba(6, 182, 212, 0.4)'}
-          >
-            <Download size={15} />
-            <span>Export SCADA</span>
-          </button>
+          {/* Live Clock Badge */}
+          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 rounded-lg text-slate-800 border border-slate-200/60 text-xs">
+            <span className="material-symbols-outlined text-slate-500 text-base">schedule</span>
+            <span className="font-semibold tabular-nums">{timeString.ist}</span>
+            <span className="text-slate-400 text-[10px]">({timeString.utc})</span>
+          </div>
+
+          {/* Operator Profile */}
+          <div className="flex items-center gap-2.5 pl-2 border-l border-slate-200">
+            <div className="text-right hidden lg:block">
+              <span className="block text-xs font-semibold text-slate-800 leading-none">
+                Eng. Aris Thorne
+              </span>
+              <span className="text-[10px] text-slate-500">
+                Grid Ops Controller
+              </span>
+            </div>
+            <div className="w-8 h-8 rounded-full bg-slate-800 text-white flex items-center justify-center text-xs font-bold ring-2 ring-emerald-500/30">
+              AT
+            </div>
+          </div>
+
         </div>
 
       </div>

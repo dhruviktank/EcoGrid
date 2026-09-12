@@ -138,6 +138,18 @@ def test_fastapi_endpoints():
     assert res_bench.status_code == 200
     assert len(res_bench.json()["models"]) >= 3
 
+    # Test Historical vs Predicted GET
+    res_hist = client.get("/api/historical-vs-predicted?site_id=bhadla-solar&window_hours=24")
+    assert res_hist.status_code == 200
+    h_data = res_hist.json()
+    assert "series" in h_data
+    assert len(h_data["series"]) == 24
+    assert "metrics" in h_data
+    assert "mae_mw" in h_data["metrics"]
+    assert "picp_coverage_pct" in h_data["metrics"]
+    assert "actual_mw" in h_data["series"][0]
+    assert "predicted_p50_mw" in h_data["series"][0]
+
 def test_feature_store_pipeline():
     from data.feature_store import load_training_features
     solar_df = load_training_features("solar")

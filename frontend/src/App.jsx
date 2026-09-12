@@ -5,6 +5,7 @@ import PlantOverviewScreen from './components/PlantOverviewScreen';
 import MultiSiteFleetScreen from './components/MultiSiteFleetScreen';
 import GridAdvisorScreen from './components/GridAdvisorScreen';
 import ModelSkillScreen from './components/ModelSkillScreen';
+import HistoricalVsPredictedView from './components/HistoricalVsPredictedView';
 import ScenarioSandbox from './components/ScenarioSandbox';
 import SCADAExportModal from './components/SCADAExportModal';
 
@@ -83,7 +84,7 @@ export default function App() {
     temp_delta: 0.0
   });
 
-  const [useLiveApi, setUseLiveApi] = useState(false);
+  const [useLiveApi, setUseLiveApi] = useState(true);
   const [forecastData, setForecastData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isExportOpen, setIsExportOpen] = useState(false);
@@ -191,6 +192,7 @@ export default function App() {
           {activeTab === 'overview' && (
             <PlantOverviewScreen
               site={currentSite}
+              sites={sites}
               forecastData={forecastData}
               horizonHours={horizonHours}
               onChangeHorizon={setHorizonHours}
@@ -218,7 +220,19 @@ export default function App() {
           {activeTab === 'model-skill-accuracy' && (
             <ModelSkillScreen
               benchmarkData={benchmarkData}
+              sites={sites}
+              selectedSiteId={selectedSiteId}
             />
+          )}
+
+          {activeTab === 'historical-replay' && (
+            <div className="w-full pb-12 animate-in fade-in duration-200">
+              <HistoricalVsPredictedView
+                selectedSiteId={selectedSiteId}
+                sites={sites}
+                embedded={false}
+              />
+            </div>
           )}
         </main>
 

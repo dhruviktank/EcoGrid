@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import FieldMap from './FieldMap';
 
 export default function PlantOverviewScreen({
   site,
+  sites = [],
   forecastData,
   horizonHours,
   onChangeHorizon,
@@ -10,11 +12,59 @@ export default function PlantOverviewScreen({
   const [hoverIndex, setHoverIndex] = useState(null);
   const [timeframe, setTimeframe] = useState('72h');
   const [histTimeframe, setHistTimeframe] = useState('Day');
+  const [histSeries, setHistSeries] = useState([]);
+  const [loadingHist, setLoadingHist] = useState(false);
 
   const timeline = forecastData?.forecast_timeline || [];
   const dispatch = forecastData?.dispatch_timeline || [];
   const alerts = forecastData?.alerts || [];
   const summary = forecastData?.grid_summary || {};
+
+  // Fetch real empirical historical vs predicted telemetry for the mini audit card
+  useEffect(() => {
+    if (!site?.id) return;
+    setLoadingHist(true);
+    const hours = histTimeframe === 'Day' ? 24 : histTimeframe === 'Week' ? 168 : 720;
+    fetch(`/api/historical-vs-predicted?site_id=${site.id}&window_hours=${hours}`)
+      .then(res => res.ok ? res.json() : null)
+      .then(json => {
+        if (json?.series) setHistSeries(json.series);
+        setLoadingHist(false);
+      })
+      .catch(() => setLoadingHist(false));
+  }, [site?.id, histTimeframe]);
+
+  // Derive 3-day weather from real forecast timeline
+  const weather3Days = [0, 1, 2].map((dayIdx) => {
+    const daySlice = timeline.slice(dayIdx * 24, (dayIdx + 1) * 24);
+    if (!daySlice.length) {
+      return {
+        day: dayIdx === 0 ? 'Today' : dayIdx === 1 ? 'Tomorrow' : 'Day 3',
+        date: `Day +${dayIdx}`,
+        temp: '32°/24°',
+        cloud: '15%',
+        wind: '10 km/h',
+        ghi: '800 W/m²'
+      };
+    }
+    const temps = daySlice.map(h => h.weather?.temperature_c || 28);
+    const maxTemp = Math.round(Math.max(...temps));
+    const minTemp = Math.round(Math.min(...temps));
+    const avgCloud = Math.round(daySlice.reduce((acc, h) => acc + (h.weather?.cloud_cover_pct || 0), 0) / daySlice.length);
+    const maxWind = Math.round(Math.max(...daySlice.map(h => (h.weather?.wind_speed_10m || 6) * 3.6)));
+    const peakGhi = Math.round(Math.max(...daySlice.map(h => h.weather?.ghi_wm2 || 0)));
+    const firstTs = daySlice[0]?.timestamp || '';
+    const dateStr = firstTs ? firstTs.substring(5, 10).replace('-', '/') : `Day +${dayIdx}`;
+
+    return {
+      day: dayIdx === 0 ? 'Today' : dayIdx === 1 ? 'Tomorrow' : 'Day 3',
+      date: dateStr,
+      temp: `${maxTemp}°/${minTemp}°`,
+      cloud: `${avgCloud}%`,
+      wind: `${maxWind} km/h`,
+      ghi: `${peakGhi} W/m²`
+    };
+  });
 
   // Current values from live API or fallback
   const firstHour = timeline[0] || {};
@@ -181,6 +231,12 @@ export default function PlantOverviewScreen({
                 <h2 className="text-base font-bold text-slate-900">
                   Generation Forecast <span className="text-xs text-slate-400 font-normal">(Next {horizonHours} Hours)</span>
                 </h2>
+                <span 
+                  className="material-symbols-outlined text-slate-400 text-sm hover:text-slate-600 cursor-pointer ml-1"
+                  title="Calculated with calibrated XGBoost quantile regression & GFS numerical weather models"
+                >
+                  info
+                </span>
               </div>
               
               {/* Segmented Horizon Pills */}
@@ -201,20 +257,30 @@ export default function PlantOverviewScreen({
               </div>
             </div>
 
-            {/* Chart Legend */}
-            <div className="flex items-center gap-4 mb-2 text-xs">
-              <div className="flex items-center gap-1.5">
-                <span className="w-3 h-0.5 bg-blue-600 rounded-full inline-block"></span>
-                <span className="text-slate-600">Actual</span>
+            {/* Chart Legend & Telemetry Link */}
+            <div className="flex items-center justify-between mb-2 text-xs">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-3.5 h-0.5 bg-blue-600 rounded-full inline-block"></span>
+                  <span className="text-slate-600">Actual Generation</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-3.5 h-0.5 border-b-2 border-dashed border-emerald-600 inline-block"></span>
+                  <span className="text-slate-600">Forecast (P50)</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 bg-emerald-400/30 rounded inline-block"></span>
+                  <span className="text-slate-600">Confidence Range</span>
+                </div>
               </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-3 h-0.5 border-b-2 border-dashed border-emerald-600 inline-block"></span>
-                <span className="text-slate-600">Forecast (P50)</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 bg-emerald-400/30 rounded inline-block"></span>
-                <span className="text-slate-600">Confidence Range (P10–P90)</span>
-              </div>
+
+              <button
+                onClick={() => onNavigateTab && onNavigateTab('model-skill-accuracy')}
+                className="text-xs text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1 hover:underline"
+              >
+                <span>Model Skill & Accuracy</span>
+                <span className="material-symbols-outlined text-sm">arrow_forward</span>
+              </button>
             </div>
 
             {/* SVG Chart */}
@@ -463,36 +529,79 @@ export default function PlantOverviewScreen({
               </div>
             </div>
 
-            {/* Wave comparison SVG */}
+            {/* Real Historical vs Predicted Telemetry SVG */}
             <div className="w-full h-40 mt-1">
-              <svg className="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 540 160">
-                <line stroke="#f1f5f9" strokeWidth="1" x1="35" x2="535" y1="20" y2="20" />
-                <line stroke="#f1f5f9" strokeWidth="1" x1="35" x2="535" y1="60" y2="60" />
-                <line stroke="#f1f5f9" strokeWidth="1" x1="35" x2="535" y1="100" y2="100" />
-                <line stroke="#e2e8f0" strokeWidth="1" x1="35" x2="535" y1="140" y2="140" />
-                
-                <text fill="#737686" fontSize="9" x="5" y="24">2,500</text>
-                <text fill="#737686" fontSize="9" x="5" y="64">1,800</text>
-                <text fill="#737686" fontSize="9" x="5" y="104">1,000</text>
-                <text fill="#737686" fontSize="9" x="14" y="143">0</text>
+              {loadingHist ? (
+                <div className="w-full h-full flex items-center justify-center bg-slate-50 rounded-lg text-slate-400 text-xs gap-2">
+                  <span className="material-symbols-outlined animate-spin text-base text-blue-600">sync</span>
+                  <span>Loading SCADA telemetry...</span>
+                </div>
+              ) : histSeries.length === 0 ? (
+                <div className="w-full h-full flex items-center justify-center bg-slate-50 rounded-lg text-slate-400 text-xs">
+                  Awaiting SCADA telemetry feed...
+                </div>
+              ) : (() => {
+                const svgW = 540;
+                const svgH = 160;
+                const pL = 40;
+                const pR = 15;
+                const pT = 15;
+                const pB = 25;
+                const cW = svgW - pL - pR;
+                const cH = svgH - pT - pB;
+                const maxVal = Math.max(...histSeries.map(d => Math.max(d.actual_mw || 0, d.predicted_p50_mw || 0)), capacity, 100);
+                const gX = (i) => pL + (i / Math.max(1, histSeries.length - 1)) * cW;
+                const gY = (val) => pT + cH - (val / maxVal) * cH;
 
-                {/* Predicted Wave (dashed teal) */}
-                <path d="M 40 140 Q 65 30 90 140 Q 115 35 140 140 Q 165 30 190 140 Q 215 40 240 140 Q 265 25 290 140 Q 315 35 340 140 Q 365 30 390 140 Q 415 32 440 140 Q 465 30 490 140 Q 515 25 535 140" fill="none" stroke="#007d55" strokeDasharray="3 3" strokeWidth="1.8" />
-                {/* Actual Wave (solid blue) */}
-                <path d="M 40 140 Q 65 38 90 140 Q 115 30 140 140 Q 165 35 190 140 Q 215 35 240 140 Q 265 30 290 140 Q 315 40 340 140 Q 365 35 390 140 Q 415 30 440 140 Q 465 38 490 140 Q 515 30 535 140" fill="none" stroke="#004ac6" strokeWidth="2" />
+                const actPts = histSeries.map((d, i) => `${gX(i)},${gY(d.actual_mw || 0)}`).join(' L ');
+                const predPts = histSeries.map((d, i) => `${gX(i)},${gY(d.predicted_p50_mw || 0)}`).join(' L ');
+                const actP = actPts ? `M ${actPts}` : '';
+                const predP = predPts ? `M ${predPts}` : '';
 
-                {/* Days */}
-                <text fill="#737686" fontSize="10" x="65" y="155">3 Jun</text>
-                <text fill="#737686" fontSize="10" x="140" y="155">5 Jun</text>
-                <text fill="#737686" fontSize="10" x="240" y="155">7 Jun</text>
-                <text fill="#737686" fontSize="10" x="340" y="155">9 Jun</text>
-                <text fill="#737686" fontSize="10" x="440" y="155">11 Jun</text>
-              </svg>
+                const tickInterval = Math.max(1, Math.floor(histSeries.length / 5));
+                const ticks = histSeries.filter((_, idx) => idx % tickInterval === 0 || idx === histSeries.length - 1);
+
+                return (
+                  <svg className="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox={`0 0 ${svgW} ${svgH}`}>
+                    {/* Horizontal Guides */}
+                    {[0, Math.round(maxVal * 0.4), Math.round(maxVal * 0.75), Math.round(maxVal)].map((v) => {
+                      const y = gY(v);
+                      return (
+                        <g key={v}>
+                          <line stroke="#f1f5f9" strokeWidth="1" x1={pL} x2={svgW - pR} y1={y} y2={y} />
+                          <text fill="#737686" fontSize="9" x={pL - 6} y={y + 3} textAnchor="end">
+                            {v.toLocaleString()}
+                          </text>
+                        </g>
+                      );
+                    })}
+
+                    {/* Predicted (dashed green) */}
+                    {predP && (
+                      <path d={predP} fill="none" stroke="#007d55" strokeDasharray="3 3" strokeWidth="1.8" />
+                    )}
+                    {/* Actual (solid blue) */}
+                    {actP && (
+                      <path d={actP} fill="none" stroke="#004ac6" strokeWidth="2" strokeLinecap="round" />
+                    )}
+
+                    {/* Dynamic Date Ticks */}
+                    {ticks.map((t, idx) => {
+                      const origIdx = histSeries.indexOf(t);
+                      return (
+                        <text key={idx} fill="#737686" fontSize="9" x={gX(origIdx)} y={svgH - 8} textAnchor="middle">
+                          {t.timestamp.length >= 16 ? t.timestamp.substring(11, 16) : `t+${origIdx}`}
+                        </text>
+                      );
+                    })}
+                  </svg>
+                );
+              })()}
             </div>
           </div>
         </div>
 
-        {/* Weather Forecast (Next 3 Days) */}
+        {/* Weather Forecast (Next 3 Days - Derived from Live NWP Timeline) */}
         <div className="lg:col-span-4 bg-white rounded-xl p-5 shadow-sm border border-slate-200/80 flex flex-col justify-between">
           <div>
             <div className="flex items-center gap-1.5 mb-3">
@@ -501,15 +610,13 @@ export default function PlantOverviewScreen({
             </div>
 
             <div className="grid grid-cols-3 gap-2.5">
-              {[
-                { day: 'Today', date: '12 Sep', temp: '36°/24°', cloud: '12%', wind: '8 km/h', ghi: '842 W/m²' },
-                { day: 'Tomorrow', date: '13 Sep', temp: '37°/25°', cloud: '8%', wind: '10 km/h', ghi: '910 W/m²' },
-                { day: 'Sun', date: '14 Sep', temp: '35°/24°', cloud: '15%', wind: '12 km/h', ghi: '780 W/m²' }
-              ].map((w, idx) => (
+              {weather3Days.map((w, idx) => (
                 <div key={idx} className="flex flex-col items-center text-center p-2 bg-slate-50 rounded-lg border border-slate-100">
                   <span className="text-xs font-semibold text-slate-900">{w.day}</span>
                   <span className="text-[10px] text-slate-400">{w.date}</span>
-                  <span className="material-symbols-outlined text-amber-500 text-2xl my-1 fill-1">wb_sunny</span>
+                  <span className="material-symbols-outlined text-amber-500 text-2xl my-1 fill-1">
+                    {site?.type === 'wind' ? 'air' : 'wb_sunny'}
+                  </span>
                   <span className="text-xs font-bold text-slate-900">{w.temp}</span>
                   <div className="w-full mt-2 pt-1 border-t border-slate-200/60 flex flex-col gap-0.5 text-left text-[10px]">
                     <div className="flex justify-between text-slate-500"><span>Cloud:</span><span className="text-slate-800">{w.cloud}</span></div>
@@ -572,51 +679,40 @@ export default function PlantOverviewScreen({
       {/* 4. Lower Section: Irradiance Map & Storage & Energy Balance */}
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         
-        {/* Nearby Plants Map */}
+        {/* Real GIS Field Map & Regional Fleet Telemetry */}
         <div className="lg:col-span-5 bg-white rounded-xl p-4 shadow-sm border border-slate-200/80 flex flex-col md:flex-row gap-4">
-          <div className="relative w-full md:w-1/2 h-48 rounded-lg overflow-hidden bg-slate-100">
-            <img 
-              src="https://images.unsplash.com/photo-1509391365360-2e959784a276?auto=format&fit=crop&w=400&h=300&q=80" 
-              alt="Solar Field Map" 
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-tr from-amber-600/30 via-orange-500/20 to-yellow-400/20 mix-blend-multiply" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-1 bg-white/90 px-2 py-0.5 rounded-full shadow-md text-xs font-bold">
-              <span className="material-symbols-outlined text-emerald-600 text-sm">location_on</span>
-              <span>Bhadla Solar</span>
-            </div>
+          <div className="w-full md:w-1/2 h-52 shrink-0">
+            <FieldMap site={site} sites={sites} />
           </div>
 
           <div className="w-full md:w-1/2 flex flex-col justify-between">
-            <span className="text-xs font-bold text-slate-900">Regional Renewable Plants</span>
-            <div className="flex flex-col divide-y divide-slate-100 text-xs">
-              <div className="flex items-center justify-between py-1.5">
-                <div className="flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-amber-500 text-sm">wb_sunny</span>
-                  <span className="font-medium text-slate-800">Pavagada Park</span>
-                </div>
-                <span className="text-slate-500 font-mono">2,050 MW</span>
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-slate-900">Regional Fleet Telemetry</span>
+                <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-mono font-bold border border-emerald-200">GIS Satellite</span>
               </div>
-              <div className="flex items-center justify-between py-1.5">
-                <div className="flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-amber-500 text-sm">wb_sunny</span>
-                  <span className="font-medium text-slate-800">Rewa Ultra Mega</span>
-                </div>
-                <span className="text-slate-500 font-mono">750 MW</span>
-              </div>
-              <div className="flex items-center justify-between py-1.5">
-                <div className="flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-cyan-600 text-sm">air</span>
-                  <span className="font-medium text-slate-800">Muppandal Wind</span>
-                </div>
-                <span className="text-slate-500 font-mono">1,500 MW</span>
+              <div className="flex flex-col divide-y divide-slate-100 text-xs">
+                {sites.filter(s => s.id !== site?.id).slice(0, 3).map(otherSite => (
+                  <div key={otherSite.id} className="flex items-center justify-between py-2">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className={`material-symbols-outlined text-sm shrink-0 ${otherSite.type === 'wind' ? 'text-cyan-600' : otherSite.type === 'hybrid' ? 'text-indigo-600' : 'text-amber-500'}`}>
+                        {otherSite.type === 'wind' ? 'air' : otherSite.type === 'hybrid' ? 'battery_charging_full' : 'wb_sunny'}
+                      </span>
+                      <span className="font-medium text-slate-800 truncate" title={otherSite.name}>
+                        {otherSite.name}
+                      </span>
+                    </div>
+                    <span className="text-slate-600 font-mono text-[11px] shrink-0 ml-2">{otherSite.capacity_mw} MW</span>
+                  </div>
+                ))}
               </div>
             </div>
             <button 
-              onClick={() => onNavigateTab('multi-site-fleet')}
-              className="w-full mt-2 py-1 text-center text-xs text-blue-600 hover:text-blue-800 font-semibold"
+              onClick={() => onNavigateTab && onNavigateTab('multi-site-fleet')}
+              className="w-full mt-2 py-1.5 text-center text-xs text-blue-600 hover:text-blue-800 font-semibold bg-blue-50/50 hover:bg-blue-50 rounded-lg transition-colors flex items-center justify-center gap-1 cursor-pointer"
             >
-              Expand Fleet Geo-Grid →
+              <span>Expand Fleet Geo-Grid</span>
+              <span className="material-symbols-outlined text-xs">arrow_forward</span>
             </button>
           </div>
         </div>
@@ -631,31 +727,51 @@ export default function PlantOverviewScreen({
             <span className="text-xs text-slate-400">Automated BESS schedule</span>
 
             {/* Charge gauge */}
-            <div className="mt-4">
-              <div className="flex items-center justify-between text-xs mb-1">
-                <span className="font-semibold text-slate-800">Charge Rate</span>
-                <span className="font-bold text-emerald-700">80% <span className="text-slate-400 font-normal">(0.8 / 1.2 GWh)</span></span>
-              </div>
-              <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
-                <div className="h-full bg-emerald-600 rounded-full transition-all duration-500" style={{ width: '80%' }}></div>
-              </div>
-            </div>
+            {(() => {
+              const bessCapMwh = site?.bess_capacity_mwh || 1200;
+              const chargeMw = activeDispatch?.bess_dispatch?.charge_mw || 0;
+              const dischargeMw = activeDispatch?.bess_dispatch?.discharge_mw || 0;
+              const maxPowerMw = site?.bess_max_power_mw || (bessCapMwh / 4);
+              const chargePct = Math.min(100, Math.round((chargeMw / Math.max(1, maxPowerMw)) * 100));
+              const dischargePct = Math.min(100, Math.round((dischargeMw / Math.max(1, maxPowerMw)) * 100));
+              const socPct = Math.round((activeDispatch?.bess_dispatch?.soc_pct ?? 0.75) * 100);
+              const storedGwh = ((socPct / 100) * bessCapMwh / 1000).toFixed(1);
+              const maxGwh = (bessCapMwh / 1000).toFixed(1);
+              const actionLabel = activeDispatch?.bess_dispatch?.action || 'Peak Shaving Standby';
 
-            {/* Discharge gauge */}
-            <div className="mt-3">
-              <div className="flex items-center justify-between text-xs mb-1">
-                <span className="font-semibold text-slate-800">Discharge Rate</span>
-                <span className="font-bold text-slate-600">0% <span className="text-slate-400 font-normal">(Standby)</span></span>
-              </div>
-              <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
-                <div className="h-full bg-slate-300 rounded-full" style={{ width: '0%' }}></div>
-              </div>
-            </div>
-          </div>
+              return (
+                <>
+                  <div className="mt-4">
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span className="font-semibold text-slate-800">SoC Storage Level</span>
+                      <span className="font-bold text-emerald-700">{socPct}% <span className="text-slate-400 font-normal">({storedGwh} / {maxGwh} GWh)</span></span>
+                    </div>
+                    <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-emerald-600 rounded-full transition-all duration-500" style={{ width: `${socPct}%` }}></div>
+                    </div>
+                  </div>
 
-          <div className="mt-3 p-2 bg-slate-50 rounded-lg flex items-center justify-between text-xs">
-            <span className="text-slate-500">Mode:</span>
-            <span className="font-semibold text-emerald-800">Peak Shaving Active</span>
+                  <div className="mt-3">
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span className="font-semibold text-slate-800">
+                        {chargeMw > 0 ? 'Charge Power' : (dischargeMw > 0 ? 'Discharge Power' : 'Dispatch Rate')}
+                      </span>
+                      <span className="font-bold text-slate-700">
+                        {chargeMw > 0 ? `+${Math.round(chargeMw)} MW` : (dischargeMw > 0 ? `-${Math.round(dischargeMw)} MW` : '0 MW (Standby)')}
+                      </span>
+                    </div>
+                    <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
+                      <div className={`h-full rounded-full transition-all duration-500 ${chargeMw > 0 ? 'bg-cyan-500' : (dischargeMw > 0 ? 'bg-amber-500' : 'bg-slate-300')}`} style={{ width: `${Math.max(chargePct, dischargePct)}%` }}></div>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 p-2 bg-slate-50 rounded-lg flex items-center justify-between text-xs">
+                    <span className="text-slate-500">Mode:</span>
+                    <span className="font-semibold text-emerald-800">{actionLabel}</span>
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </div>
 
@@ -680,14 +796,39 @@ export default function PlantOverviewScreen({
               </div>
             </div>
 
-            {/* Bars spectrum */}
+            {/* Dynamic Expected Energy Balance Bars (First 24h of Forecast) */}
             <div className="h-24 w-full flex items-end justify-between gap-1 pt-2">
-              <svg className="w-full h-full" viewBox="0 0 300 90">
-                {[20, 25, 30, 45, 65, 80, 90, 85, 75, 60, 40, 30, 25].map((val, idx) => (
-                  <rect key={idx} x={15 + idx * 22} y={90 - val * 0.9} width="12" height={val * 0.9} rx="2" fill="#007d55" />
-                ))}
-                <path d="M 15 70 L 60 72 L 105 60 L 150 40 L 195 38 L 240 45 L 285 70" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" />
-              </svg>
+              {(() => {
+                const energy24 = timeline.slice(0, 24);
+                if (!energy24.length) return <div className="text-xs text-slate-400 py-6">No energy data available</div>;
+                const maxVal = Math.max(...energy24.map(h => Math.max(h.generation?.total_p50_mw || 0, h.demand_mw || 0)), 100);
+                const dPts = energy24.map((h, i) => `${10 + i * 12},${80 - ((h.demand_mw || 0) / maxVal) * 65}`).join(' L ');
+
+                return (
+                  <svg className="w-full h-full" viewBox="0 0 300 90">
+                    {energy24.map((h, idx) => {
+                      const genVal = h.generation?.total_p50_mw || 0;
+                      const barH = Math.max(2, (genVal / maxVal) * 65);
+                      return (
+                        <rect 
+                          key={idx} 
+                          x={6 + idx * 12} 
+                          y={80 - barH} 
+                          width="8" 
+                          height={barH} 
+                          rx="1.5" 
+                          fill="#007d55" 
+                        >
+                          <title>{`Hour ${idx}: ${Math.round(genVal)} MW`}</title>
+                        </rect>
+                      );
+                    })}
+                    {dPts && (
+                      <path d={`M ${dPts}`} fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" />
+                    )}
+                  </svg>
+                );
+              })()}
             </div>
             <div className="flex justify-between text-slate-400 text-[10px] border-t border-slate-100 pt-1">
               <span>00:00</span>
@@ -700,16 +841,22 @@ export default function PlantOverviewScreen({
 
           <div className="grid grid-cols-3 gap-2 mt-3 p-2 bg-slate-50 rounded-lg text-center text-xs">
             <div>
-              <span className="block text-[10px] text-slate-400">Total Gen</span>
-              <span className="font-bold text-slate-900">{Math.round(summary.total_clean_gen_mwh || 42800 / 1000)}k MWh</span>
+              <span className="block text-[10px] text-slate-400">Total Clean Gen</span>
+              <span className="font-bold text-slate-900">
+                {Math.round((summary.total_clean_gen_mwh || timeline.slice(0, 24).reduce((a, b) => a + (b.generation?.total_p50_mw || 0), 0)) / 1000)}k MWh
+              </span>
             </div>
             <div>
-              <span className="block text-[10px] text-slate-400">Demand</span>
-              <span className="font-bold text-slate-900">38.2k MWh</span>
+              <span className="block text-[10px] text-slate-400">Total Demand</span>
+              <span className="font-bold text-slate-900">
+                {Math.round(timeline.slice(0, 24).reduce((a, b) => a + (b.demand_mw || 1500), 0) / 1000)}k MWh
+              </span>
             </div>
             <div>
               <span className="block text-[10px] text-emerald-600">Surplus</span>
-              <span className="font-bold text-emerald-700">+{Math.max(0, Math.round(((summary.total_clean_gen_mwh || 42800) - 38200) / 1000))}k MWh</span>
+              <span className="font-bold text-emerald-700">
+                +{Math.max(0, Math.round(((summary.total_clean_gen_mwh || 42800) - 35000) / 1000))}k MWh
+              </span>
             </div>
           </div>
         </div>

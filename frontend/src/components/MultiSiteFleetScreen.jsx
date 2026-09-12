@@ -1,168 +1,37 @@
-import React, { useState } from 'react';
-
-const INITIAL_FLEET = [
-  {
-    id: 'columbia-gorge',
-    name: 'Columbia Gorge Ph 1 & 2',
-    interconnect: 'OR-BPA-048 · Zone-4',
-    tech: 'Wind',
-    techIcon: 'air',
-    nameplate: '480 MW',
-    liveGen: '462 MW',
-    capPct: '96%',
-    peak24h: '475 MW',
-    riskState: 'Alert: Over-Gen +18%',
-    riskColor: 'text-rose-600 bg-rose-50 border-rose-200',
-    window: '28 min',
-    action: 'Curtail 22% & dispatch BESS-A (80 MW)',
-    buttonLabel: 'Dispatch',
-    buttonColor: 'bg-rose-600 hover:bg-rose-700 text-white',
-    isAlert: true
-  },
-  {
-    id: 'desert-sky',
-    name: 'Desert Sky Solar & BESS',
-    interconnect: 'NV-CAISO-109 · Zone-7',
-    tech: 'Hybrid',
-    techIcon: 'battery_charging_full',
-    nameplate: '600 MW',
-    liveGen: '510 MW',
-    capPct: '85%',
-    peak24h: '560 MW',
-    riskState: 'Thermal Inverter Limit',
-    riskColor: 'text-amber-700 bg-amber-50 border-amber-200',
-    window: '42 min',
-    action: 'Activate auxiliary cooling stage 2',
-    buttonLabel: 'Mitigate',
-    buttonColor: 'bg-emerald-600 hover:bg-emerald-700 text-white',
-    isWarning: true
-  },
-  {
-    id: 'bhadla-solar',
-    name: 'Bhadla Solar Park',
-    interconnect: 'IN-RAJ-001 · Zone-9',
-    tech: 'Solar',
-    techIcon: 'sunny',
-    nameplate: '2,245 MW',
-    liveGen: '1,820 MW',
-    capPct: '81%',
-    peak24h: '2,180 MW',
-    riskState: 'Healthy Nominal',
-    riskColor: 'text-emerald-700 bg-emerald-50 border-emerald-200',
-    window: '--',
-    action: 'Standard AGC tracking active',
-    buttonLabel: 'Inspect',
-    buttonColor: 'bg-slate-100 hover:bg-slate-200 text-slate-700',
-    isNominal: true
-  },
-  {
-    id: 'cascade-solar',
-    name: 'Cascade Solar Park',
-    interconnect: 'WA-PAC-012 · Zone-2',
-    tech: 'Solar',
-    techIcon: 'sunny',
-    nameplate: '320 MW',
-    liveGen: '298 MW',
-    capPct: '93%',
-    peak24h: '315 MW',
-    riskState: 'Watch: Cloud Ramp ±14%',
-    riskColor: 'text-amber-700 bg-amber-50 border-amber-200',
-    window: '1h 15m',
-    action: 'Prime fast-response inverter spin',
-    buttonLabel: 'Review',
-    buttonColor: 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700',
-    isWarning: true
-  },
-  {
-    id: 'tri-cities',
-    name: 'Tri-Cities Solar Array',
-    interconnect: 'WA-MIDC-084 · Zone-3',
-    tech: 'Solar',
-    techIcon: 'sunny',
-    nameplate: '220 MW',
-    liveGen: '185 MW',
-    capPct: '84%',
-    peak24h: '210 MW',
-    riskState: 'Watch: Grid Freq Drift',
-    riskColor: 'text-cyan-700 bg-cyan-50 border-cyan-200',
-    window: '54 min',
-    action: 'Adjust droop curve slope +0.8%',
-    buttonLabel: 'Review',
-    buttonColor: 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700',
-    isWarning: true
-  },
-  {
-    id: 'silver-lake',
-    name: 'Silver Lake Wind Facility',
-    interconnect: 'OR-PGE-023 · Zone-1',
-    tech: 'Wind',
-    techIcon: 'air',
-    nameplate: '240 MW',
-    liveGen: '188 MW',
-    capPct: '78%',
-    peak24h: '220 MW',
-    riskState: 'Healthy Nominal',
-    riskColor: 'text-emerald-700 bg-emerald-50 border-emerald-200',
-    window: '--',
-    action: 'Standard AGC tracking active',
-    buttonLabel: 'Inspect',
-    buttonColor: 'bg-slate-100 hover:bg-slate-200 text-slate-700',
-    isNominal: true
-  },
-  {
-    id: 'blue-mountain',
-    name: 'Blue Mountain Wind Field',
-    interconnect: 'UT-PAC-077 · Zone-5',
-    tech: 'Wind',
-    techIcon: 'air',
-    nameplate: '380 MW',
-    liveGen: '272 MW',
-    capPct: '71%',
-    peak24h: '340 MW',
-    riskState: 'Healthy Nominal',
-    riskColor: 'text-emerald-700 bg-emerald-50 border-emerald-200',
-    window: '--',
-    action: 'Continuous rotor yaw optimization',
-    buttonLabel: 'Inspect',
-    buttonColor: 'bg-slate-100 hover:bg-slate-200 text-slate-700',
-    isNominal: true
-  },
-  {
-    id: 'willamette-microgrid',
-    name: 'Willamette Valley Microgrid',
-    interconnect: 'OR-PGE-105 · Zone-8',
-    tech: 'Hybrid',
-    techIcon: 'grid_view',
-    nameplate: '100 MW',
-    liveGen: '88 MW',
-    capPct: '88%',
-    peak24h: '95 MW',
-    riskState: 'Healthy Nominal',
-    riskColor: 'text-emerald-700 bg-emerald-50 border-emerald-200',
-    window: '--',
-    action: 'Peak shaving standby ready',
-    buttonLabel: 'Inspect',
-    buttonColor: 'bg-slate-100 hover:bg-slate-200 text-slate-700',
-    isNominal: true
-  }
-];
+import React, { useState, useEffect } from 'react';
 
 export default function MultiSiteFleetScreen({ onSelectSite, onNavigateTab }) {
+  const [fleet, setFleet] = useState([]);
+  const [summary, setSummary] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedSites, setSelectedSites] = useState({
-    'columbia-gorge': true,
-    'desert-sky': true,
-    'bhadla-solar': false,
-    'cascade-solar': true
-  });
+  const [selectedSites, setSelectedSites] = useState({});
   const [isQueueExecuted, setIsQueueExecuted] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/fleet')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data && data.fleet) {
+          setFleet(data.fleet);
+          setSummary(data);
+          const initialSel = {};
+          data.fleet.forEach(s => {
+            if (s.isAlert || s.isWarning) initialSel[s.id] = true;
+          });
+          setSelectedSites(initialSel);
+        }
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
 
   const toggleSelect = (id) => {
     setSelectedSites(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const filteredFleet = INITIAL_FLEET.filter((site) => {
+  const filteredFleet = fleet.filter((site) => {
     if (filterType === 'WIND' && site.tech !== 'Wind') return false;
     if (filterType === 'SOLAR' && site.tech !== 'Solar') return false;
     if (filterType === 'HYBRID' && site.tech !== 'Hybrid') return false;
@@ -177,53 +46,65 @@ export default function MultiSiteFleetScreen({ onSelectSite, onNavigateTab }) {
     return true;
   });
 
+  const criticalSite = fleet.find(s => s.isAlert) || fleet.find(s => s.isWarning) || fleet[0];
+  const stagedSites = fleet.filter(s => selectedSites[s.id]);
+
   const handleExecuteAll = () => {
     setIsQueueExecuted(true);
     setTimeout(() => {
-      alert('SCADA Intertie Synced: 3 mitigation setpoints transmitted to dispatch controllers successfully.');
+      alert(`SCADA Intertie Synced: ${stagedSites.length} mitigation setpoints transmitted to dispatch controllers successfully.`);
     }, 400);
   };
+
+  const windCount = fleet.filter(s => s.tech === 'Wind').length;
+  const solarCount = fleet.filter(s => s.tech === 'Solar').length;
+  const hybridCount = fleet.filter(s => s.tech === 'Hybrid').length;
 
   return (
     <div className="flex flex-col w-full pb-12 gap-5">
       
-      {/* 1. Hero Critical Fleet Alert Banner */}
-      <div className="bg-rose-50 border border-rose-200/90 rounded-xl p-4 shadow-sm">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-start gap-3">
-            <div className="w-9 h-9 rounded-lg bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-sm">
-              <span className="material-symbols-outlined text-xl">warning</span>
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-extrabold uppercase tracking-wider text-rose-700 bg-rose-100 px-2 py-0.5 rounded">
-                  Critical Fleet Action Required
-                </span>
-                <span className="text-xs text-slate-500 font-mono">Trigger: 14:28:10 IST</span>
+      {/* 1. Hero Critical Fleet Alert Banner (Dynamic from Real Decision Engine) */}
+      {criticalSite && (
+        <div className={`rounded-xl p-4 shadow-sm border ${criticalSite.isAlert ? 'bg-rose-50 border-rose-200/90' : 'bg-amber-50 border-amber-200/90'}`}>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className={`w-9 h-9 rounded-lg text-white flex items-center justify-center shrink-0 shadow-sm ${criticalSite.isAlert ? 'bg-rose-600' : 'bg-amber-600'}`}>
+                <span className="material-symbols-outlined text-xl">warning</span>
               </div>
-              <p className="text-xs text-slate-700 mt-1 max-w-3xl leading-relaxed">
-                Zone-4 Columbia Gorge Phase 1 & 2 is exceeding regional thermal ramp envelope by <strong className="text-rose-700 font-semibold">+18% (128 MW surplus)</strong>. Automated fast-curtailment dispatch instruction required within <span className="font-semibold text-rose-700 underline underline-offset-2">28 minutes</span> to avoid severe imbalance surcharges.
-              </p>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className={`text-xs font-extrabold uppercase tracking-wider px-2 py-0.5 rounded ${criticalSite.isAlert ? 'text-rose-700 bg-rose-100' : 'text-amber-800 bg-amber-100'}`}>
+                    {criticalSite.isAlert ? 'Critical Fleet Action Required' : 'Active Grid Advisory Watch'}
+                  </span>
+                  <span className="text-xs text-slate-500 font-mono">Asset: {criticalSite.name}</span>
+                </div>
+                <p className="text-xs text-slate-700 mt-1 max-w-3xl leading-relaxed">
+                  <strong className="text-slate-900 font-semibold">{criticalSite.name} ({criticalSite.interconnect})</strong>: {criticalSite.action}. Current generation is <strong className="text-slate-900">{criticalSite.liveGen}</strong> ({criticalSite.capPct} of {criticalSite.nameplate}). Response window: <span className="font-semibold text-rose-700 underline underline-offset-2">{criticalSite.window}</span>.
+                </p>
+              </div>
             </div>
-          </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            <button 
-              onClick={() => onNavigateTab('grid-advisor-dispatch')}
-              className="px-3 py-1.5 bg-white text-slate-700 hover:bg-slate-100 border border-slate-200 rounded-lg text-xs font-semibold transition-colors"
-            >
-              Simulate Impact
-            </button>
-            <button 
-              onClick={() => onNavigateTab('grid-advisor-dispatch')}
-              className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold shadow-sm transition-all flex items-center gap-1.5"
-            >
-              <span className="material-symbols-outlined text-sm">flash_on</span>
-              <span>Engage Zone Curtailment</span>
-            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              <button 
+                onClick={() => {
+                  onSelectSite && onSelectSite(criticalSite.id);
+                  onNavigateTab && onNavigateTab('overview');
+                }}
+                className="px-3 py-1.5 bg-white text-slate-700 hover:bg-slate-100 border border-slate-200 rounded-lg text-xs font-semibold transition-colors"
+              >
+                Inspect Plant
+              </button>
+              <button 
+                onClick={() => onNavigateTab && onNavigateTab('grid-advisor-dispatch')}
+                className={`px-3.5 py-1.5 text-white rounded-lg text-xs font-semibold shadow-sm transition-all flex items-center gap-1.5 ${criticalSite.isAlert ? 'bg-rose-600 hover:bg-rose-700' : 'bg-emerald-600 hover:bg-emerald-700'}`}
+              >
+                <span className="material-symbols-outlined text-sm">flash_on</span>
+                <span>Engage Dispatch Advisor</span>
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* 2. Workspace: 8-Col Table Area + 4-Col Mitigation Queue */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-5">
@@ -252,25 +133,25 @@ export default function MultiSiteFleetScreen({ onSelectSite, onNavigateTab }) {
                 onClick={() => setFilterType('ALL')}
                 className={`px-3 py-1 rounded font-semibold transition-all ${filterType === 'ALL' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
               >
-                ALL (8)
+                ALL ({fleet.length})
               </button>
               <button 
                 onClick={() => setFilterType('WIND')}
                 className={`px-3 py-1 rounded font-semibold flex items-center gap-1 transition-all ${filterType === 'WIND' ? 'bg-cyan-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
               >
-                <span className="material-symbols-outlined text-xs">air</span> WIND (3)
+                <span className="material-symbols-outlined text-xs">air</span> WIND ({windCount})
               </button>
               <button 
                 onClick={() => setFilterType('SOLAR')}
                 className={`px-3 py-1 rounded font-semibold flex items-center gap-1 transition-all ${filterType === 'SOLAR' ? 'bg-amber-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
               >
-                <span className="material-symbols-outlined text-xs">sunny</span> SOLAR PV (3)
+                <span className="material-symbols-outlined text-xs">sunny</span> SOLAR PV ({solarCount})
               </button>
               <button 
                 onClick={() => setFilterType('HYBRID')}
                 className={`px-3 py-1 rounded font-semibold flex items-center gap-1 transition-all ${filterType === 'HYBRID' ? 'bg-emerald-700 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
               >
-                <span className="material-symbols-outlined text-xs">battery_charging_full</span> HYBRID (2)
+                <span className="material-symbols-outlined text-xs">battery_charging_full</span> HYBRID ({hybridCount})
               </button>
             </div>
 
@@ -294,109 +175,136 @@ export default function MultiSiteFleetScreen({ onSelectSite, onNavigateTab }) {
                   </tr>
                 </thead>
                 <tbody className="text-xs divide-y divide-slate-100">
-                  {filteredFleet.map((site) => {
-                    const isChecked = Boolean(selectedSites[site.id]);
-                    const rowBg = site.isAlert 
-                      ? 'bg-rose-50/40 hover:bg-rose-50/70' 
-                      : site.isWarning 
-                      ? 'bg-amber-50/30 hover:bg-amber-50/60' 
-                      : 'hover:bg-slate-50/70';
+                  {loading ? (
+                    <tr>
+                      <td colSpan="9" className="text-center py-8 text-slate-400">
+                        <div className="flex items-center justify-center gap-2">
+                          <span className="material-symbols-outlined animate-spin text-lg text-emerald-600">sync</span>
+                          <span>Loading fleet telemetry & ML forecasts...</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : filteredFleet.length === 0 ? (
+                    <tr>
+                      <td colSpan="9" className="text-center py-8 text-slate-400">
+                        No sites matching filter criteria.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredFleet.map((site) => {
+                      const isChecked = Boolean(selectedSites[site.id]);
+                      const rowBg = site.isAlert 
+                        ? 'bg-rose-50/40 hover:bg-rose-50/70' 
+                        : site.isWarning 
+                          ? 'bg-amber-50/30 hover:bg-amber-50/60' 
+                          : 'hover:bg-slate-50/80';
 
-                    return (
-                      <tr key={site.id} className={`transition-colors ${rowBg}`}>
-                        
-                        {/* Site Name & Checkbox */}
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-2.5">
-                            <input 
-                              type="checkbox"
-                              checked={isChecked}
-                              onChange={() => toggleSelect(site.id)}
-                              className="w-4 h-4 rounded text-emerald-600 focus:ring-0 cursor-pointer"
-                            />
-                            <div>
-                              <span 
+                      return (
+                        <tr 
+                          key={site.id}
+                          className={`transition-colors cursor-pointer ${rowBg}`}
+                          onClick={() => {
+                            onSelectSite && onSelectSite(site.id);
+                            onNavigateTab && onNavigateTab('overview');
+                          }}
+                        >
+                          {/* Name & Checkbox */}
+                          <td className="py-3.5 px-4" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center gap-3">
+                              <input 
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => toggleSelect(site.id)}
+                                className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                              />
+                              <div 
                                 onClick={() => {
-                                  if (onSelectSite) onSelectSite(site.id);
-                                  onNavigateTab('overview');
+                                  onSelectSite && onSelectSite(site.id);
+                                  onNavigateTab && onNavigateTab('overview');
                                 }}
-                                className="font-semibold text-slate-900 block leading-tight hover:text-emerald-600 cursor-pointer"
+                                className="flex flex-col"
                               >
-                                {site.name}
-                              </span>
-                              <span className="text-[10px] text-slate-400 font-mono">{site.interconnect}</span>
+                                <span className="font-bold text-slate-900 hover:text-emerald-700">
+                                  {site.name}
+                                </span>
+                                <span className="text-[10px] text-slate-400 font-mono">
+                                  {site.interconnect}
+                                </span>
+                              </div>
                             </div>
-                          </div>
-                        </td>
+                          </td>
 
-                        {/* Tech */}
-                        <td className="py-3 px-2">
-                          <span className={`inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-medium ${
-                            site.tech === 'Wind' ? 'bg-cyan-50 text-cyan-700' : site.tech === 'Solar' ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'
-                          }`}>
-                            <span className="material-symbols-outlined text-xs">{site.techIcon}</span>
-                            {site.tech}
-                          </span>
-                        </td>
+                          {/* Tech */}
+                          <td className="py-3.5 px-2">
+                            <span className="inline-flex items-center gap-1 font-medium text-slate-700">
+                              <span className="material-symbols-outlined text-xs">{site.techIcon}</span>
+                              <span>{site.tech}</span>
+                            </span>
+                          </td>
 
-                        {/* Nameplate */}
-                        <td className="py-3 px-2 font-semibold text-slate-700 tabular-nums">
-                          {site.nameplate}
-                        </td>
+                          {/* Nameplate */}
+                          <td className="py-3.5 px-2 font-mono text-slate-800 font-semibold">
+                            {site.nameplate}
+                          </td>
 
-                        {/* Live Gen */}
-                        <td className="py-3 px-2">
-                          <span className={`font-bold tabular-nums ${site.isAlert ? 'text-rose-600' : 'text-slate-900'}`}>
-                            {site.liveGen}
-                          </span>
-                          <span className={`block text-[10px] ${site.isAlert ? 'text-rose-500' : 'text-slate-400'}`}>
-                            ({site.capPct} cap)
-                          </span>
-                        </td>
+                          {/* Live Gen & % */}
+                          <td className="py-3.5 px-2">
+                            <div className="flex flex-col">
+                              <span className="font-mono font-bold text-slate-900">{site.liveGen}</span>
+                              <span className="text-[10px] text-slate-500">{site.capPct} cap</span>
+                            </div>
+                          </td>
 
-                        {/* 24h Peak */}
-                        <td className="py-3 px-2 text-slate-600 font-mono">
-                          {site.peak24h}
-                        </td>
+                          {/* 24h Peak */}
+                          <td className="py-3.5 px-2 font-mono text-slate-700">
+                            {site.peak24h}
+                          </td>
 
-                        {/* Risk State Badge */}
-                        <td className="py-3 px-2">
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${site.riskColor}`}>
-                            {site.isAlert && <span className="w-1.5 h-1.5 rounded-full bg-rose-600 animate-ping" />}
-                            {site.riskState}
-                          </span>
-                        </td>
+                          {/* Risk State */}
+                          <td className="py-3.5 px-2">
+                            <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold border ${site.riskColor} whitespace-nowrap`}>
+                              {site.riskState}
+                            </span>
+                          </td>
 
-                        {/* Window */}
-                        <td className={`py-3 px-2 font-semibold tabular-nums text-xs ${site.isAlert ? 'text-rose-600' : 'text-slate-500'}`}>
-                          {site.window}
-                        </td>
+                          {/* Window */}
+                          <td className="py-3.5 px-2 text-slate-500 font-mono text-[11px]">
+                            {site.window}
+                          </td>
 
-                        {/* Action */}
-                        <td className="py-3 px-3">
-                          <span className="text-slate-700 text-xs block max-w-xs">{site.action}</span>
-                        </td>
+                          {/* Action */}
+                          <td className="py-3.5 px-3 max-w-[220px]">
+                            <span className="text-slate-700 line-clamp-2 text-[11px]">
+                              {site.action}
+                            </span>
+                          </td>
 
-                        {/* Intervention Button */}
-                        <td className="py-3 px-4 text-right">
-                          <button 
-                            onClick={() => onNavigateTab('grid-advisor-dispatch')}
-                            className={`px-2.5 py-1 rounded text-xs font-semibold shadow-sm transition-all ${site.buttonColor}`}
-                          >
-                            {site.buttonLabel}
-                          </button>
-                        </td>
-
-                      </tr>
-                    );
-                  })}
+                          {/* Intervention CTA */}
+                          <td className="py-3.5 px-4 text-right" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              onClick={() => {
+                                onSelectSite && onSelectSite(site.id);
+                                onNavigateTab && onNavigateTab('overview');
+                              }}
+                              className={`px-3 py-1 rounded text-xs font-semibold shadow-sm transition-all ${site.buttonColor}`}
+                            >
+                              {site.buttonLabel}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
             </div>
 
-            {/* Table Footer */}
-            <div className="px-4 py-2.5 bg-slate-50/80 flex items-center justify-between text-xs text-slate-500 border-t border-slate-200/70">
-              <span>Displaying 8 of 8 production sites · 4 sub-zones active</span>
+            {/* Footer Summary Strip */}
+            <div className="p-3 bg-slate-50 border-t border-slate-100 flex flex-wrap items-center justify-between text-xs text-slate-600 gap-2">
+              <div className="flex items-center gap-4">
+                <span>Total Monitored Fleet Capacity: <strong className="text-slate-900">{summary ? `${summary.total_capacity_mw?.toLocaleString()} MW` : '8,831 MW'}</strong></span>
+                <span>Active Live Generation: <strong className="text-emerald-700">{summary ? `${summary.total_live_gen_mw?.toLocaleString()} MW` : '6,177 MW'}</strong></span>
+              </div>
               <span className="font-mono text-[11px] text-slate-400">ISO Interconnection Data Feed: 99.98% Synced</span>
             </div>
           </div>
@@ -415,94 +323,70 @@ export default function MultiSiteFleetScreen({ onSelectSite, onNavigateTab }) {
                     <span className="material-symbols-outlined text-emerald-600 text-lg">pending_actions</span>
                     <h2 className="text-sm font-bold text-slate-900">Pending Mitigation Queue</h2>
                   </div>
-                  <p className="text-xs text-slate-400 mt-0.5">3 Actions staged for synchronized dispatch</p>
+                  <p className="text-xs text-slate-400 mt-0.5">{stagedSites.length} Actions staged for synchronized dispatch</p>
                 </div>
                 <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
-                  3 STAGED
+                  {stagedSites.length} STAGED
                 </span>
               </div>
 
-              {/* Staged Items Stack */}
+              {/* Staged Items Stack (Dynamic from Real Selected Sites) */}
               <div className="flex flex-col gap-3">
-                
-                {/* Staged 1 */}
-                <div className="p-3 rounded-lg bg-slate-50 border border-slate-200/70 flex flex-col gap-1 relative overflow-hidden">
-                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-rose-600"></div>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <span className="text-[10px] font-bold text-rose-600 uppercase">Priority 1 · Fast Ramp Down</span>
-                      <h4 className="text-xs font-bold text-slate-900">Columbia Gorge Ph 1 & 2</h4>
+                {stagedSites.length === 0 ? (
+                  <div className="p-4 rounded-lg bg-slate-50 border border-dashed border-slate-200 text-center text-xs text-slate-500">
+                    No sites currently staged. Check asset boxes in the fleet table to stage synchronized mitigation setpoints.
+                  </div>
+                ) : (
+                  stagedSites.map((site, idx) => (
+                    <div 
+                      key={site.id} 
+                      className="p-3 rounded-lg bg-slate-50 border border-slate-200/70 flex flex-col gap-1 relative overflow-hidden"
+                    >
+                      <div className={`absolute left-0 top-0 bottom-0 w-1 ${site.isAlert ? 'bg-rose-600' : 'bg-amber-500'}`}></div>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <span className={`text-[10px] font-bold uppercase ${site.isAlert ? 'text-rose-600' : 'text-amber-700'}`}>
+                            Priority {idx + 1} · {site.isAlert ? 'Curtailment Dispatch' : 'Reserve Mitigation'}
+                          </span>
+                          <h4 className="text-xs font-bold text-slate-900">{site.name}</h4>
+                        </div>
+                      </div>
+                      <p className="text-xs text-slate-600 mt-1">
+                        {site.action}
+                      </p>
+                      <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-slate-200/60 text-[11px]">
+                        <span className="text-slate-500">Target Output: <strong className="text-slate-800">{site.liveGen}</strong></span>
+                        <span className="text-rose-600 font-semibold">{site.window !== '--' ? `T-minus ${site.window}` : 'Standby Ready'}</span>
+                      </div>
                     </div>
-                  </div>
-                  <p className="text-xs text-slate-600 mt-1">
-                    Apply dynamic setpoint cap to 360 MW (-22% derate). Command battery bank Alpha to absorb 80 MW surge.
-                  </p>
-                  <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-slate-200/60 text-[11px]">
-                    <span className="text-slate-500">Avoided Cost: <strong className="text-emerald-700">+$34,200/hr</strong></span>
-                    <span className="text-rose-600 font-semibold">T-minus 28m</span>
-                  </div>
-                </div>
-
-                {/* Staged 2 */}
-                <div className="p-3 rounded-lg bg-slate-50 border border-slate-200/70 flex flex-col gap-1 relative overflow-hidden">
-                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-600"></div>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <span className="text-[10px] font-bold text-blue-600 uppercase">Priority 2 · Inverter Chiller Step</span>
-                      <h4 className="text-xs font-bold text-slate-900">Desert Sky Solar & BESS</h4>
-                    </div>
-                  </div>
-                  <p className="text-xs text-slate-600 mt-1">
-                    Step-up auxiliary cooling chiller bank. Thermal derate mitigated by +45 MW headroom recovery.
-                  </p>
-                  <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-slate-200/60 text-[11px]">
-                    <span className="text-slate-500">Avoided Cost: <strong className="text-emerald-700">+$18,400/hr</strong></span>
-                    <span className="text-amber-600 font-semibold">T-minus 42m</span>
-                  </div>
-                </div>
-
-                {/* Staged 3 */}
-                <div className="p-3 rounded-lg bg-slate-50 border border-slate-200/70 flex flex-col gap-1 relative overflow-hidden">
-                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-600"></div>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <span className="text-[10px] font-bold text-emerald-700 uppercase">Priority 3 · Peaker Standby</span>
-                      <h4 className="text-xs font-bold text-slate-900">Bhadla Solar Intertie</h4>
-                    </div>
-                  </div>
-                  <p className="text-xs text-slate-600 mt-1">
-                    Pre-warm peaker units with 2h lead time to supply evening demand ramp shortfall.
-                  </p>
-                  <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-slate-200/60 text-[11px]">
-                    <span className="text-slate-500">Avoided Cost: <strong className="text-emerald-700">+$12,000/hr</strong></span>
-                    <span className="text-emerald-700 font-semibold">Staged</span>
-                  </div>
-                </div>
-
+                  ))
+                )}
               </div>
             </div>
 
             {/* Queue Execution Footer */}
             <div className="mt-4 pt-3 border-t border-slate-100 flex flex-col gap-2">
               <div className="flex justify-between text-xs text-slate-600">
-                <span>Aggregate Avoided Risk:</span>
-                <span className="font-bold text-emerald-700">+$64,600 / hr</span>
+                <span>Staged Interconnection Assets:</span>
+                <span className="font-bold text-emerald-700">{stagedSites.length} Units Active</span>
               </div>
 
               <button
                 onClick={handleExecuteAll}
-                disabled={isQueueExecuted}
+                disabled={isQueueExecuted || stagedSites.length === 0}
                 className={`w-full py-2.5 rounded-lg text-xs font-bold shadow-sm transition-all flex items-center justify-center gap-1.5 ${
                   isQueueExecuted
                     ? 'bg-emerald-100 text-emerald-800 cursor-default'
-                    : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                    : stagedSites.length === 0
+                      ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                      : 'bg-emerald-600 hover:bg-emerald-700 text-white'
                 }`}
               >
                 <span className="material-symbols-outlined text-base">
                   {isQueueExecuted ? 'check_circle' : 'bolt'}
                 </span>
                 <span>
-                  {isQueueExecuted ? '✓ All Staged Orders Executed & Logged' : 'Synchronize & Execute All Orders (3)'}
+                  {isQueueExecuted ? '✓ All Staged Orders Executed & Logged' : `Synchronize & Execute Orders (${stagedSites.length})`}
                 </span>
               </button>
             </div>

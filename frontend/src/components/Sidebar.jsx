@@ -11,6 +11,7 @@ export default function Sidebar({
     { id: 'multi-site-fleet', label: 'Multi-Site Fleet', icon: 'grid_view' },
     { id: 'grid-advisor-dispatch', label: 'Grid Advisor & Dispatch', icon: 'bolt' },
     { id: 'model-skill-accuracy', label: 'Model Skill & Accuracy', icon: 'query_stats' },
+    { id: 'historical-replay', label: 'Historical vs Predicted', icon: 'history' },
   ];
 
   return (
@@ -63,12 +64,12 @@ export default function Sidebar({
                   }
                 >
                   <span 
-                    className="material-symbols-outlined text-lg"
+                    className="material-symbols-outlined text-lg shrink-0"
                     style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}
                   >
                     {item.icon}
                   </span>
-                  <span>{item.label}</span>
+                  <span className="truncate">{item.label}</span>
                 </button>
               );
             })}

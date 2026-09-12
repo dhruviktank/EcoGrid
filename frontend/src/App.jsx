@@ -239,7 +239,7 @@ export default function App() {
         {/* Global Footer */}
         <footer className="py-4 px-8 border-t border-slate-200 text-xs text-slate-500 flex flex-wrap justify-between items-center bg-white/80 backdrop-blur-md">
           <div className="flex items-center gap-2">
-            <span className="font-bold text-slate-800">GridSense AI • Nimbus Platform</span>
+            <span className="font-bold text-slate-800">EcoGrid Intelligence</span>
             <span>·</span>
             <span>Forecasting the grid's next 72 hours, before the weather decides for us</span>
             <span>·</span>

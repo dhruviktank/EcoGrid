@@ -62,26 +62,26 @@ export default function Header({
 
   return (
     <header className="fixed top-0 left-72 right-0 h-16 bg-white/95 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] border-b border-slate-200/80 z-50">
-      <div className="h-16 w-full px-4 sm:px-6 flex items-center justify-between gap-3 relative">
+      <div className="h-16 w-full px-4 sm:px-6 flex items-center justify-between gap-2 sm:gap-4 relative">
         
-        {/* Left: Site Selector & Weather Condition */}
-        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+        {/* Left: Site Selector & Live API Toggle */}
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 shrink-0">
           {/* Site Selector Dropdown */}
           <div ref={dropdownRef} className="relative shrink-0">
             <button
               onClick={() => setIsSiteDropdownOpen(!isSiteDropdownOpen)}
-              className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 bg-slate-100 hover:bg-slate-200/80 rounded-lg text-slate-800 transition-colors cursor-pointer border border-slate-200 text-xs sm:text-sm"
+              className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 bg-slate-100 hover:bg-slate-200/80 rounded-lg text-slate-800 transition-colors cursor-pointer border border-slate-200 text-xs sm:text-sm"
             >
-              <span className={`material-symbols-outlined text-base sm:text-lg ${currentSite.type === 'wind' ? 'text-cyan-600' : 'text-amber-500'}`}>
+              <span className={`material-symbols-outlined text-base sm:text-lg shrink-0 ${currentSite.type === 'wind' ? 'text-cyan-600' : 'text-amber-500'}`}>
                 {getSiteIcon(currentSite.type)}
               </span>
-              <span className="font-semibold text-slate-900 whitespace-nowrap">
+              <span className="font-semibold text-slate-900 truncate max-w-[110px] sm:max-w-[160px] md:max-w-[200px]">
                 {currentSite.name}
               </span>
-              <span className="text-xs text-slate-500 hidden xl:inline whitespace-nowrap">
+              <span className="text-xs text-slate-500 hidden 2xl:inline whitespace-nowrap">
                 {currentSite.region} · {currentSite.capacity_mw} MW
               </span>
-              <span className="material-symbols-outlined text-slate-400 text-sm">
+              <span className="material-symbols-outlined text-slate-400 text-sm shrink-0">
                 arrow_drop_down
               </span>
             </button>
@@ -123,18 +123,23 @@ export default function Header({
             )}
           </div>
 
-          {/* Live Data Mode Toggle */}
+          {/* Live Data Mode Toggle - Compact, crisp, non-colliding */}
           <button
             onClick={() => onToggleLiveApi && onToggleLiveApi(!useLiveApi)}
-            className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer shrink-0 ${
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer shrink-0 ${
               useLiveApi 
-                ? 'bg-emerald-50 text-emerald-800 border-emerald-300 ring-2 ring-emerald-500/20 shadow-sm' 
+                ? 'bg-emerald-50 text-emerald-800 border-emerald-300 ring-1 ring-emerald-500/20 shadow-sm hover:bg-emerald-100/70' 
                 : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200/80'
             }`}
             title={useLiveApi ? "Currently querying Open-Meteo Live API. Click to use offline SCADA." : "Currently using local SCADA holdout telemetry. Click to enable Open-Meteo Live API."}
           >
-            <span className={`w-2 h-2 rounded-full ${useLiveApi ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
-            <span className="whitespace-nowrap">{useLiveApi ? 'Live API: Open-Meteo' : 'Mode: Local SCADA'}</span>
+            <span className={`w-2 h-2 rounded-full shrink-0 ${useLiveApi ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+            <span className="whitespace-nowrap font-medium">
+              {useLiveApi ? 'Live API' : 'Local SCADA'}
+            </span>
+            <span className="hidden 2xl:inline text-[10px] text-slate-400 font-normal">
+              {useLiveApi ? '(Open-Meteo)' : '(Holdout)'}
+            </span>
           </button>
 
           {/* Live Weather Badge */}
@@ -145,7 +150,7 @@ export default function Header({
           </div>
         </div>
 
-        {/* Right: Horizon, Time, Persona, & Operator */}
+        {/* Right: Horizon Switcher (24h/48h/72h), Persona, Time, & Profile */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           
           {/* Horizon Switcher (24h / 48h / 72h) */}
@@ -165,8 +170,8 @@ export default function Header({
             ))}
           </div>
 
-          {/* Persona Switcher */}
-          <div className="hidden xl:flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200/60 text-xs shrink-0">
+          {/* Persona Switcher - progressively shown on wide screens */}
+          <div className="hidden 2xl:flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200/60 text-xs shrink-0">
             {[
               { id: 'operator', label: 'Operator' },
               { id: 'planner', label: 'Planner' },
@@ -193,9 +198,9 @@ export default function Header({
             <span className="text-slate-400 text-[10px]">({timeString.utc})</span>
           </div>
 
-          {/* Operator Profile - ALWAYS FULLY VISIBLE INSIDE SCREEN */}
+          {/* Operator Profile - Clean and responsive, avatar always shown, text on wide screens */}
           <div className="flex items-center gap-2 pl-2 sm:pl-3 border-l border-slate-200 shrink-0">
-            <div className="text-right hidden sm:block">
+            <div className="text-right hidden 2xl:block">
               <span className="block text-xs font-semibold text-slate-800 leading-none whitespace-nowrap">
                 Eng. Aris Thorne
               </span>
@@ -203,7 +208,10 @@ export default function Header({
                 Grid Ops Controller
               </span>
             </div>
-            <div className="w-8 h-8 rounded-full bg-slate-800 text-white flex items-center justify-center text-xs font-bold ring-2 ring-emerald-500/30 shrink-0">
+            <div 
+              className="w-8 h-8 rounded-full bg-slate-800 text-white flex items-center justify-center text-xs font-bold ring-2 ring-emerald-500/30 shrink-0 cursor-default"
+              title="Eng. Aris Thorne (Grid Ops Controller)"
+            >
               AT
             </div>
           </div>

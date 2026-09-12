@@ -143,7 +143,7 @@ def get_hourly_weather(lat: float, lon: float, forecast_days: int = 3,
                 if len(site_df) >= total_hours:
                     records = site_df.head(total_hours).to_dict(orient="records")
                     res = {
-                        "source": "Nimbus Empirical Feature Store (SCADA Ground Truth)",
+                        "source": "EcoGrid Empirical Feature Store (SCADA Ground Truth)",
                         "latitude": lat,
                         "longitude": lon,
                         "count": len(records),
@@ -157,7 +157,7 @@ def get_hourly_weather(lat: float, lon: float, forecast_days: int = 3,
     # 4. Solar Zenith & Atmospheric Physics Engine Fallback
     synthetic_records = generate_synthetic_weather(lat, lon, forecast_days)
     res = {
-        "source": "Nimbus Solar Zenith & Atmospheric Physics Engine",
+        "source": "EcoGrid Solar Zenith & Atmospheric Physics Engine",
         "latitude": lat,
         "longitude": lon,
         "count": len(synthetic_records),
@@ -201,7 +201,7 @@ def generate_synthetic_weather(lat: float, lon: float, forecast_days: int) -> Li
             "dni_wm2": round(dni, 1),
             "wind_speed_10m": round(wind_10m, 2),
             "wind_speed_100m": round(wind_100m, 2),
-            "source": "nimbus-synthetic"
+            "source": "ecogrid-synthetic"
         })
 
     return records

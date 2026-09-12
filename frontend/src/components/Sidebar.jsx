@@ -27,7 +27,7 @@ export default function Sidebar({
           </div>
           <div className="flex flex-col">
             <span className="font-headline-sm text-headline-sm text-inverse-on-surface tracking-tight leading-none text-white font-bold">
-              GridSense AI
+              EcoGrid Intelligence
             </span>
             <span className="font-label-sm text-label-sm text-outline-variant mt-space-2xs uppercase tracking-wider text-slate-400 text-[10px]">
               Renewable Generation Intelligence

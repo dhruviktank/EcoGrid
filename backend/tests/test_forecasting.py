@@ -113,7 +113,7 @@ def test_fastapi_endpoints():
     # Test Root
     res_root = client.get("/")
     assert res_root.status_code == 200
-    assert "Nimbus" in res_root.json()["platform"]
+    assert "EcoGrid" in res_root.json()["platform"]
 
     # Test Sites
     res_sites = client.get("/api/sites")

@@ -32,7 +32,7 @@ from app.services.historical_service import get_historical_vs_predicted
 from models.evaluator import calculate_mae, calculate_rmse, calculate_skill_score
 
 app = FastAPI(
-    title="Nimbus - Renewable Energy Intelligence Platform",
+    title="EcoGrid Intelligence - Renewable Energy Platform",
     description="Forecasting the grid's next 72 hours with calibrated confidence intervals, BESS storage dispatch, automated curtailment/peaker intelligence, and operator/planner/trader lenses.",
     version="1.0.0"
 )
@@ -71,7 +71,7 @@ class ForecastRequest(BaseModel):
 def root():
     return {
         "status": "online",
-        "platform": "Nimbus Renewable Energy Intelligence Platform",
+        "platform": "EcoGrid Intelligence Platform",
         "team": "Dev29",
         "tagline": "Forecasting the grid's next 72 hours, before the weather decides for us",
         "mode": "Production Verified (Open-Meteo NWP & Kaggle SCADA Empirical Holdout)",
@@ -301,7 +301,7 @@ def get_model_benchmark():
                         "status": f"Top Performer (+{round((s_metrics.get('skill_score_pct', 74.5) + w_metrics.get('skill_score_pct', 77.3)) / 2.0, 1)}% Skill)"
                     },
                     {
-                        "model": "Nimbus Physics-Informed Ensemble",
+                        "model": "EcoGrid Physics-Informed Ensemble",
                         "role": "Production Composite (Physics + Quantile ML)",
                         "mae_mw": 0.31,
                         "rmse_mw": 0.68,

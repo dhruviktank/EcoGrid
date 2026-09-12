@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import DataProvenanceBadge from './DataProvenanceBadge';
 
 export default function GridAdvisorScreen({ forecastData, site }) {
   const [isDispatched, setIsDispatched] = useState(false);
@@ -48,6 +49,7 @@ export default function GridAdvisorScreen({ forecastData, site }) {
                 <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider">
                   Core Mitigation Objective
                 </span>
+                <DataProvenanceBadge type="decision-engine" align="left" />
               </div>
               <span className="text-xs text-slate-500">
                 Asset: <span className="font-mono text-slate-900 font-semibold">{site?.name || 'Bhadla Solar Park'}</span>
@@ -136,7 +138,10 @@ export default function GridAdvisorScreen({ forecastData, site }) {
         <div className="lg:col-span-4 bg-white p-6 rounded-xl shadow-sm border border-slate-200/80 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between">
-              <span className="text-[11px] text-slate-500 uppercase tracking-wider font-bold">Validation Metric</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] text-slate-500 uppercase tracking-wider font-bold">Validation Metric</span>
+                <DataProvenanceBadge type="benchmark-skill" compact={true} align="left" />
+              </div>
               <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                 HIGH CERTAINTY
               </span>

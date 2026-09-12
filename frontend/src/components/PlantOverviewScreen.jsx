@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import FieldMap from './FieldMap';
+import DataProvenanceBadge from './DataProvenanceBadge';
 
 export default function PlantOverviewScreen({
   site,
@@ -114,11 +115,14 @@ export default function PlantOverviewScreen({
         
         {/* Current Generation */}
         <div className="bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow border border-slate-200/80 flex flex-col justify-between">
-          <div className="flex items-center gap-2 mb-1">
-            <div className="w-7 h-7 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
-              <span className="material-symbols-outlined text-base fill-1">bolt</span>
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                <span className="material-symbols-outlined text-base fill-1">bolt</span>
+              </div>
+              <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Current Generation</span>
             </div>
-            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Current Generation</span>
+            <DataProvenanceBadge type="ml-forecast" compact={true} align="left" />
           </div>
           <div>
             <div className="text-2xl font-bold text-slate-900 tabular-nums">
@@ -135,11 +139,14 @@ export default function PlantOverviewScreen({
 
         {/* Solar Irradiance */}
         <div className="bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow border border-slate-200/80 flex flex-col justify-between">
-          <div className="flex items-center gap-2 mb-1">
-            <div className="w-7 h-7 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center">
-              <span className="material-symbols-outlined text-base fill-1">wb_sunny</span>
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center">
+                <span className="material-symbols-outlined text-base fill-1">wb_sunny</span>
+              </div>
+              <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Solar Irradiance</span>
             </div>
-            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Solar Irradiance</span>
+            <DataProvenanceBadge type="real-weather" compact={true} align="left" />
           </div>
           <div>
             <div className="text-2xl font-bold text-slate-900 tabular-nums">
@@ -156,11 +163,14 @@ export default function PlantOverviewScreen({
 
         {/* Cloud Cover */}
         <div className="bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow border border-slate-200/80 flex flex-col justify-between">
-          <div className="flex items-center gap-2 mb-1">
-            <div className="w-7 h-7 rounded-full bg-cyan-50 text-cyan-600 flex items-center justify-center">
-              <span className="material-symbols-outlined text-base fill-1">cloud</span>
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-full bg-cyan-50 text-cyan-600 flex items-center justify-center">
+                <span className="material-symbols-outlined text-base fill-1">cloud</span>
+              </div>
+              <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Cloud Cover</span>
             </div>
-            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Cloud Cover</span>
+            <DataProvenanceBadge type="real-weather" compact={true} align="left" />
           </div>
           <div>
             <div className="text-2xl font-bold text-slate-900 tabular-nums">
@@ -177,11 +187,14 @@ export default function PlantOverviewScreen({
 
         {/* Wind Speed */}
         <div className="bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow border border-slate-200/80 flex flex-col justify-between">
-          <div className="flex items-center gap-2 mb-1">
-            <div className="w-7 h-7 rounded-full bg-teal-50 text-teal-600 flex items-center justify-center">
-              <span className="material-symbols-outlined text-base">mode_fan</span>
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-full bg-teal-50 text-teal-600 flex items-center justify-center">
+                <span className="material-symbols-outlined text-base">mode_fan</span>
+              </div>
+              <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Wind Speed</span>
             </div>
-            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Wind Speed</span>
+            <DataProvenanceBadge type="real-weather" compact={true} align="left" />
           </div>
           <div>
             <div className="text-2xl font-bold text-slate-900 tabular-nums">
@@ -198,11 +211,14 @@ export default function PlantOverviewScreen({
 
         {/* Temperature */}
         <div className="bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow border border-slate-200/80 flex flex-col justify-between">
-          <div className="flex items-center gap-2 mb-1">
-            <div className="w-7 h-7 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center">
-              <span className="material-symbols-outlined text-base">device_thermostat</span>
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center">
+                <span className="material-symbols-outlined text-base">device_thermostat</span>
+              </div>
+              <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Temperature</span>
             </div>
-            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Temperature</span>
+            <DataProvenanceBadge type="real-weather" compact={true} align="right" />
           </div>
           <div>
             <div className="text-2xl font-bold text-slate-900 tabular-nums">
@@ -226,17 +242,12 @@ export default function PlantOverviewScreen({
         <div className="lg:col-span-6 bg-white rounded-xl p-5 shadow-sm border border-slate-200/80 flex flex-col justify-between">
           <div>
             <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-emerald-600 text-xl fill-1">bolt</span>
                 <h2 className="text-base font-bold text-slate-900">
                   Generation Forecast <span className="text-xs text-slate-400 font-normal">(Next {horizonHours} Hours)</span>
                 </h2>
-                <span 
-                  className="material-symbols-outlined text-slate-400 text-sm hover:text-slate-600 cursor-pointer ml-1"
-                  title="Calculated with calibrated XGBoost quantile regression & GFS numerical weather models"
-                >
-                  info
-                </span>
+                <DataProvenanceBadge type="ml-forecast" align="left" />
               </div>
               
               {/* Segmented Horizon Pills */}
@@ -499,9 +510,10 @@ export default function PlantOverviewScreen({
         <div className="lg:col-span-5 bg-white rounded-xl p-5 shadow-sm border border-slate-200/80 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between gap-2 mb-2">
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-blue-600 text-lg">query_stats</span>
                 <h3 className="text-sm font-bold text-slate-900">Historical vs Predicted Generation</h3>
+                <DataProvenanceBadge type="real-scada" align="left" />
               </div>
               <div className="inline-flex p-0.5 bg-slate-100 rounded-lg text-xs">
                 {['Day', 'Week', 'Month'].map((t) => (
@@ -604,9 +616,12 @@ export default function PlantOverviewScreen({
         {/* Weather Forecast (Next 3 Days - Derived from Live NWP Timeline) */}
         <div className="lg:col-span-4 bg-white rounded-xl p-5 shadow-sm border border-slate-200/80 flex flex-col justify-between">
           <div>
-            <div className="flex items-center gap-1.5 mb-3">
-              <span className="material-symbols-outlined text-amber-500 text-lg">sunny_snowing</span>
-              <h3 className="text-sm font-bold text-slate-900">Weather Forecast <span className="text-xs text-slate-400 font-normal">(Next 3 Days)</span></h3>
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <div className="flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-amber-500 text-lg">sunny_snowing</span>
+                <h3 className="text-sm font-bold text-slate-900">Weather Forecast <span className="text-xs text-slate-400 font-normal">(Next 3 Days)</span></h3>
+              </div>
+              <DataProvenanceBadge type="real-weather" compact={true} align="right" />
             </div>
 
             <div className="grid grid-cols-3 gap-2.5">
@@ -689,7 +704,7 @@ export default function PlantOverviewScreen({
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-bold text-slate-900">Regional Fleet Telemetry</span>
-                <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-mono font-bold border border-emerald-200">GIS Satellite</span>
+                <DataProvenanceBadge type="real-gis" compact={true} align="right" />
               </div>
               <div className="flex flex-col divide-y divide-slate-100 text-xs">
                 {sites.filter(s => s.id !== site?.id).slice(0, 3).map(otherSite => (
@@ -720,9 +735,12 @@ export default function PlantOverviewScreen({
         {/* Recommended Storage Dispatch */}
         <div className="lg:col-span-3 bg-white rounded-xl p-5 shadow-sm border border-slate-200/80 flex flex-col justify-between">
           <div>
-            <div className="flex items-center gap-1.5 mb-1">
-              <span className="material-symbols-outlined text-emerald-600 text-lg">battery_saver</span>
-              <h3 className="text-sm font-bold text-slate-900">Recommended Storage</h3>
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <div className="flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-emerald-600 text-lg">battery_saver</span>
+                <h3 className="text-sm font-bold text-slate-900">Recommended Storage</h3>
+              </div>
+              <DataProvenanceBadge type="bess-dispatch" compact={true} align="right" />
             </div>
             <span className="text-xs text-slate-400">Automated BESS schedule</span>
 
@@ -783,6 +801,7 @@ export default function PlantOverviewScreen({
                 <span className="material-symbols-outlined text-blue-600 text-lg">balance</span>
                 <h3 className="text-sm font-bold text-slate-900">Expected Energy Balance <span className="text-xs text-slate-400 font-normal">(24h)</span></h3>
               </div>
+              <DataProvenanceBadge type="physical-sim" compact={true} align="right" />
             </div>
 
             <div className="flex items-center gap-4 text-xs mb-2">

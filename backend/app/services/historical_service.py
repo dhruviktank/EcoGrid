@@ -26,8 +26,10 @@ from models.evaluator import calculate_mae, calculate_rmse, calculate_skill_scor
 
 DATA_DIR = os.path.join(REPO_ROOT, "data")
 HISTORICAL_CSV = os.path.join(DATA_DIR, "historical_generation_dummy.csv")
+DRYAD_WIND_CSV = os.path.join(DATA_DIR, "dryad_offshore_wind_generation.csv")
 SOLAR_FEATURES_CSV = os.path.join(DATA_DIR, "solar_training_features.csv")
 WIND_FEATURES_CSV = os.path.join(DATA_DIR, "wind_training_features.csv")
+SITES_JSON = os.path.join(DATA_DIR, "sample_sites.json")
 
 # Global in-memory cache for processed historical comparison series
 _CACHE: Dict[str, Dict[str, Any]] = {}
@@ -39,19 +41,67 @@ def get_model() -> XGBoostQuantileModel:
         _MODEL = XGBoostQuantileModel()
     return _MODEL
 
+def _get_site_meta(site_id: str) -> Dict[str, Any]:
+    """Loads site metadata from sample_sites.json or falls back to sensible defaults."""
+    if os.path.exists(SITES_JSON):
+        try:
+            with open(SITES_JSON, "r", encoding="utf-8") as f:
+                sites = json.load(f)
+                for s in sites:
+                    if s.get("id") == site_id or s.get("site_id") == site_id:
+                        return s
+        except Exception as e:
+            print(f"[HistoricalService] Warning reading {SITES_JSON}: {e}")
+
+    site_defaults = {
+        "bhadla-solar": {"type": "solar", "capacity_mw": 2245.0, "name": "Bhadla Solar Park (Rajasthan, India)"},
+        "desert-sunlight": {"type": "solar", "capacity_mw": 550.0, "name": "Desert Sunlight Solar Farm (California, USA)"},
+        "muppandal-wind": {"type": "wind", "capacity_mw": 1500.0, "name": "Muppandal Wind Farm (Tamil Nadu, India)"},
+        "hornsea-wind": {"type": "wind", "capacity_mw": 1386.0, "name": "Hornsea 2 Offshore Wind (North Sea, UK)"},
+        "hybrid-gansu": {"type": "hybrid", "capacity_mw": 3200.0, "name": "Jiuquan Hybrid Eco-Power Base (Gansu, China)"}
+    }
+    return site_defaults.get(site_id, {
+        "type": "wind" if "wind" in site_id else "solar",
+        "capacity_mw": 500.0,
+        "name": site_id
+    })
+
 def _load_historical_site_data(site_id: str, capacity_mw: float, site_type: str) -> List[Dict[str, Any]]:
     """
     Loads historical SCADA telemetry for the specified utility site,
     computes XGBoost P10/P50/P90 quantile predictions and persistence baseline.
+    Checks the Dryad offshore wind dataset (dryad_offshore_wind_generation.csv)
+    first for wind sites, falling back to historical_generation_dummy.csv.
     """
-    if not os.path.exists(HISTORICAL_CSV):
-        return []
+    df_site = pd.DataFrame()
 
-    df = pd.read_csv(HISTORICAL_CSV)
-    df_site = df[df["site_id"] == site_id].copy().reset_index(drop=True)
+    # 1. Check Dryad offshore wind dataset first for offshore wind plants
+    if os.path.exists(DRYAD_WIND_CSV):
+        try:
+            df_wind = pd.read_csv(DRYAD_WIND_CSV)
+            match = df_wind[df_wind["site_id"] == site_id].copy().reset_index(drop=True)
+            if not match.empty:
+                df_site = match
+        except Exception as e:
+            print(f"[HistoricalService] Error querying Dryad wind dataset: {e}")
+
+    # 2. Check general historical CSV if not found in Dryad dataset
+    if df_site.empty and os.path.exists(HISTORICAL_CSV):
+        try:
+            df_hist = pd.read_csv(HISTORICAL_CSV)
+            match = df_hist[df_hist["site_id"] == site_id].copy().reset_index(drop=True)
+            if not match.empty:
+                df_site = match
+        except Exception as e:
+            print(f"[HistoricalService] Error querying historical CSV: {e}")
+
+    # 3. Fallback to bhadla-solar if still not found
     if df_site.empty:
-        # Fallback to bhadla-solar if not found
-        df_site = df[df["site_id"] == "bhadla-solar"].copy().reset_index(drop=True)
+        if os.path.exists(HISTORICAL_CSV):
+            df_hist = pd.read_csv(HISTORICAL_CSV)
+            df_site = df_hist[df_hist["site_id"] == "bhadla-solar"].copy().reset_index(drop=True)
+        else:
+            return []
 
     model = get_model()
     site_meta = {
@@ -184,15 +234,10 @@ def get_historical_vs_predicted(
         if dataset in ["kaggle_solar", "kaggle_wind"]:
             _CACHE[cache_key] = _load_kaggle_holdout_data(dataset)
         else:
-            # Map known site metadata
-            site_types = {
-                "bhadla-solar": ("solar", 2245.0, "Bhadla Solar Park (Rajasthan, India)"),
-                "desert-sunlight": ("solar", 550.0, "Desert Sunlight Solar Farm (California, USA)"),
-                "muppandal-wind": ("wind", 1500.0, "Muppandal Wind Farm (Tamil Nadu, India)"),
-                "hornsea-wind": ("wind", 1386.0, "Hornsea 2 Offshore Wind (North Sea, UK)"),
-                "hybrid-gansu": ("hybrid", 3200.0, "Jiuquan Hybrid Eco-Power Base (Gansu, China)")
-            }
-            s_type, cap, _ = site_types.get(site_id, ("solar", 1000.0, "Utility Facility"))
+            # Map site metadata dynamically from sample_sites.json or defaults
+            site_meta = _get_site_meta(site_id)
+            s_type = site_meta.get("type", "solar")
+            cap = float(site_meta.get("capacity_mw", 1000.0))
             _CACHE[cache_key] = _load_historical_site_data(site_id, cap, s_type)
 
     all_records = _CACHE.get(cache_key, [])

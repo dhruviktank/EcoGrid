@@ -50,7 +50,11 @@ SITES_PATH = os.path.join(REPO_ROOT, "data", "sample_sites.json")
 def load_sites() -> List[Dict[str, Any]]:
     if os.path.exists(SITES_PATH):
         with open(SITES_PATH, "r", encoding="utf-8") as f:
-            return json.load(f)
+            sites = json.load(f)
+            return [
+                s for s in sites 
+                if s.get("enabled", True) is not False and s.get("active", True) is not False
+            ]
     return []
 
 SITES_CACHE = load_sites()
@@ -89,6 +93,8 @@ def root():
 @app.get("/api/sites")
 def get_sites():
     """Returns available utility-scale solar, wind, and hybrid sites."""
+    global SITES_CACHE
+    SITES_CACHE = load_sites()
     return {
         "count": len(SITES_CACHE),
         "sites": SITES_CACHE
@@ -192,10 +198,17 @@ def get_forecast(req: ForecastRequest):
     if req.custom_site:
         target_site = req.custom_site
     else:
+        global SITES_CACHE
         for s in SITES_CACHE:
-            if s["id"] == req.site_id:
+            if s.get("id") == req.site_id or s.get("site_id") == req.site_id:
                 target_site = s
                 break
+        if not target_site:
+            SITES_CACHE = load_sites()
+            for s in SITES_CACHE:
+                if s.get("id") == req.site_id or s.get("site_id") == req.site_id:
+                    target_site = s
+                    break
 
     if not target_site:
         target_site = SITES_CACHE[0] if SITES_CACHE else {
@@ -268,12 +281,24 @@ def get_model_benchmark():
         try:
             with open(backtest_path, "r") as f:
                 bt = json.load(f)
+            dryad_path = os.path.join(REPO_ROOT, "models", "trained", "dryad_wind_backtest_summary.json")
+            dryad_metrics = {}
+            if os.path.exists(dryad_path):
+                try:
+                    with open(dryad_path, "r") as f_d:
+                        dryad_summary = json.load(f_d)
+                        dryad_metrics = dryad_summary.get("fleet_averages", {})
+                except Exception:
+                    pass
+
             s_metrics = bt.get("solar", {})
             w_metrics = bt.get("wind", {})
+
             return {
-                "benchmark_dataset": "Kaggle Solar & Wind SCADA Test Holdout",
+                "benchmark_dataset": "Kaggle SCADA & Dryad North Sea Offshore Wind (262k hrs)",
                 "solar_backtest": s_metrics,
                 "wind_backtest": w_metrics,
+                "dryad_offshore_wind_backtest": dryad_metrics,
                 "models": [
                     {
                         "model": "Persistence / Seasonal-Naive Baseline",

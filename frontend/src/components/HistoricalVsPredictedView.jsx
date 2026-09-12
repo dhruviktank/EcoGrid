@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import DataProvenanceBadge from './DataProvenanceBadge';
 
 export default function HistoricalVsPredictedView({
   selectedSiteId = 'bhadla-solar',
@@ -139,13 +140,13 @@ export default function HistoricalVsPredictedView({
       d.in_confidence_band ? 'YES' : 'NO',
       d.weather?.ghi_wm2 || '',
       d.weather?.wind_speed_100m || '',
-      d.weather?.temperature_c || ''
+      d.weather?.temperature_2m || ''
     ]);
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `historical_vs_predicted_${datasetOverride || siteId}_${windowHours}h.csv`);
+    link.setAttribute('download', `ecogrid_audit_${siteId}_${windowHours}h.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -165,6 +166,7 @@ export default function HistoricalVsPredictedView({
             <span className="text-[10px] font-bold bg-blue-50 text-blue-700 px-2.5 py-0.5 rounded-full border border-blue-200 whitespace-nowrap">
               SCADA Ground-Truth Telemetry
             </span>
+            <DataProvenanceBadge type="real-scada" compact={false} align="left" />
           </div>
           <p className="text-xs text-slate-500 mt-1">
             Replaying recorded utility sensor generation side-by-side against calibrated XGBoost Quantile predictions (P10/P50/P90) &amp; Persistence Baseline.
@@ -272,9 +274,12 @@ export default function HistoricalVsPredictedView({
             <div className={`border rounded-xl p-3 flex flex-col justify-between ${
               isPositive ? 'bg-emerald-50/50 border-emerald-200/80' : 'bg-amber-50/50 border-amber-200/80'
             }`}>
-              <span className={`text-[10px] font-bold uppercase tracking-wider ${
-                isPositive ? 'text-emerald-700' : 'text-amber-700'
-              }`}>Skill Score</span>
+              <div className="flex items-center justify-between">
+                <span className={`text-[10px] font-bold uppercase tracking-wider ${
+                  isPositive ? 'text-emerald-700' : 'text-amber-700'
+                }`}>Skill Score</span>
+                <DataProvenanceBadge type="benchmark-skill" compact={true} align="right" />
+              </div>
               <div className="my-1">
                 <span className={`text-xl font-bold tabular-nums ${
                   isPositive ? 'text-emerald-700' : 'text-amber-700'
@@ -339,28 +344,34 @@ export default function HistoricalVsPredictedView({
 
       {/* 3. Series Toggle Strip */}
       <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-        <div className="flex flex-wrap items-center gap-4 text-xs">
+        <div className="flex flex-wrap items-center gap-3 text-xs">
           {/* Actual Toggle */}
-          <button
-            onClick={() => setShowActual(!showActual)}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-colors ${
-              showActual ? 'bg-blue-50 text-blue-700 font-bold border border-blue-200' : 'text-slate-400 line-through'
-            }`}
-          >
-            <span className="w-3 h-1 bg-blue-600 rounded-full inline-block"></span>
-            <span>Historical Actual (SCADA Ground Truth)</span>
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setShowActual(!showActual)}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-colors ${
+                showActual ? 'bg-blue-50 text-blue-700 font-bold border border-blue-200' : 'text-slate-400 line-through'
+              }`}
+            >
+              <span className="w-3 h-1 bg-blue-600 rounded-full inline-block"></span>
+              <span>Historical Actual (SCADA Ground Truth)</span>
+            </button>
+            <DataProvenanceBadge type="real-scada" compact={true} align="left" />
+          </div>
 
           {/* P50 Toggle */}
-          <button
-            onClick={() => setShowP50(!showP50)}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-colors ${
-              showP50 ? 'bg-emerald-50 text-emerald-700 font-bold border border-emerald-200' : 'text-slate-400 line-through'
-            }`}
-          >
-            <span className="w-3 h-1 bg-emerald-600 rounded-full inline-block"></span>
-            <span>XGBoost Point Forecast (P50)</span>
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setShowP50(!showP50)}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-colors ${
+                showP50 ? 'bg-emerald-50 text-emerald-700 font-bold border border-emerald-200' : 'text-slate-400 line-through'
+              }`}
+            >
+              <span className="w-3 h-1 bg-emerald-600 rounded-full inline-block"></span>
+              <span>XGBoost Point Forecast (P50)</span>
+            </button>
+            <DataProvenanceBadge type="ml-forecast" compact={true} align="left" />
+          </div>
 
           {/* Confidence Interval Toggle */}
           <button

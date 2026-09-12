@@ -47,16 +47,17 @@ const DEFAULT_SITES = [
     bess_max_power_mw: 150.0
   },
   {
-    id: "hornsea-wind",
-    name: "Hornsea 2 Offshore Wind",
+    id: "beatrice-wind",
+    site_id: "beatrice-wind",
+    name: "Beatrice Offshore Wind Farm",
     type: "wind",
     country: "UK",
-    region: "North Sea",
-    latitude: 53.9,
-    longitude: 1.75,
-    capacity_mw: 1386.0,
-    bess_capacity_mwh: 500.0,
-    bess_max_power_mw: 125.0
+    region: "Moray Firth, Scotland",
+    latitude: 58.25,
+    longitude: -2.9,
+    capacity_mw: 588.0,
+    bess_capacity_mwh: 200.0,
+    bess_max_power_mw: 50.0
   },
   {
     id: "hybrid-gansu",
@@ -97,7 +98,8 @@ export default function App() {
       .then(res => res.ok ? res.json() : null)
       .then(data => {
         if (data && data.sites && data.sites.length > 0) {
-          setSites(data.sites);
+          const visibleSites = data.sites.filter(s => s.enabled !== false && s.active !== false);
+          setSites(visibleSites);
         }
       })
       .catch(() => {});

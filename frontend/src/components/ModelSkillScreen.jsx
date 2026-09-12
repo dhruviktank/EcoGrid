@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import DataProvenanceBadge from './DataProvenanceBadge';
 
 export default function ModelSkillScreen({ benchmarkData, sites = [], selectedSiteId = 'bhadla-solar' }) {
   const [timeRange, setTimeRange] = useState('7d'); // '24h', '7d', '30d', 'ytd'
@@ -62,9 +63,12 @@ export default function ModelSkillScreen({ benchmarkData, sites = [], selectedSi
             <span className="text-slate-300 text-xs">•</span>
             <span className="text-xs text-slate-500 font-medium">Quantile Regression & SCADA Holdouts</span>
           </div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-            Model Performance, Skill Scores & Historical Accuracy
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+              Model Performance, Skill Scores & Historical Accuracy
+            </h1>
+            <DataProvenanceBadge type="benchmark-skill" align="right" />
+          </div>
         </div>
 
         {/* Interactive Filters */}
@@ -122,7 +126,10 @@ export default function ModelSkillScreen({ benchmarkData, sites = [], selectedSi
         <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-200/80 flex flex-col justify-between hover:shadow-md transition-shadow">
           <div className="flex items-start justify-between">
             <div className="flex flex-col">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Normalized MAE</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Normalized MAE</span>
+                <DataProvenanceBadge type="benchmark-skill" compact={true} align="left" />
+              </div>
               <span className="text-xs text-slate-500">Mean Absolute Error (Total Cap)</span>
             </div>
             <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
@@ -241,6 +248,7 @@ export default function ModelSkillScreen({ benchmarkData, sites = [], selectedSi
               <h2 className="text-lg font-bold text-slate-900">
                 7-Day Realized vs Model Dispatch Curves
               </h2>
+              <DataProvenanceBadge type="real-scada" align="left" />
             </div>
             <p className="text-xs text-slate-500 mt-1">
               Continuous telemetry stream comparing real-time plant injection against Day-Ahead (T+24h) ensemble predictions and physics baseline.

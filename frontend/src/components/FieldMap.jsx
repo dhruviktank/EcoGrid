@@ -12,33 +12,40 @@ export default function FieldMap({ site, sites = [] }) {
   const lat = site?.latitude || 27.539;
   const lon = site?.longitude || 71.915;
 
-  useEffect(() => {
-    if (!mapContainerRef.current) return;
+  const satelliteLayerRef = useRef(null);
+  const streetLayerRef = useRef(null);
 
-    // Clean up previous instance if any
-    if (mapInstanceRef.current) {
-      mapInstanceRef.current.remove();
-      mapInstanceRef.current = null;
+  // 1. Initialize Leaflet Map ONCE on container mount
+  useEffect(() => {
+    const container = mapContainerRef.current;
+    if (!container) return;
+
+    // Clean up stale leaflet id if any
+    if (container._leaflet_id) {
+      delete container._leaflet_id;
     }
 
     try {
-      const map = L.map(mapContainerRef.current, {
+      const map = L.map(container, {
         center: [lat, lon],
         zoom: 11,
         zoomControl: false,
         attributionControl: false
       });
 
-      // Tile layers
+      // Tile layers (100% free, no API key required, zero watermark)
       const satelliteLayer = L.tileLayer(
         'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
         { maxZoom: 18 }
       );
 
       const streetLayer = L.tileLayer(
-        'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
         { maxZoom: 19 }
       );
+
+      satelliteLayerRef.current = satelliteLayer;
+      streetLayerRef.current = streetLayer;
 
       if (mapType === 'satellite') {
         satelliteLayer.addTo(map);
@@ -48,70 +55,116 @@ export default function FieldMap({ site, sites = [] }) {
 
       const layerGroup = L.layerGroup().addTo(map);
       layerGroupRef.current = layerGroup;
-
-      // Custom pulsing emerald pin marker for the active plant
-      const primaryIcon = L.divIcon({
-        className: 'custom-field-pin',
-        html: `
-          <div class="relative flex items-center justify-center">
-            <div class="absolute w-8 h-8 bg-emerald-500/30 rounded-full animate-ping"></div>
-            <div class="relative w-7 h-7 bg-emerald-600 text-white rounded-full shadow-lg border-2 border-white flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-              </svg>
-            </div>
-          </div>
-        `,
-        iconSize: [28, 28],
-        iconAnchor: [14, 28],
-        popupAnchor: [0, -28]
-      });
-
-      const marker = L.marker([lat, lon], { icon: primaryIcon }).addTo(layerGroup);
-      marker.bindPopup(`
-        <div style="font-family: sans-serif; font-size: 11px; padding: 2px;">
-          <strong style="font-size: 12px; color: #0f172a; display: block; margin-bottom: 2px;">${site?.name || 'Renewable Asset'}</strong>
-          <span style="color: #059669; font-weight: 600;">${site?.capacity_mw || 0} MW ${site?.type?.toUpperCase() || ''}</span>
-          <div style="color: #64748b; font-size: 10px; margin-top: 2px;">${lat.toFixed(4)}° N, ${lon.toFixed(4)}° E</div>
-        </div>
-      `).openPopup();
-
-      // Plot other nearby fleet sites if available in the same region
-      sites.forEach(otherSite => {
-        if (otherSite.id === site?.id || !otherSite.latitude || !otherSite.longitude) return;
-        const otherIcon = L.divIcon({
-          className: 'other-site-pin',
-          html: `
-            <div class="w-4 h-4 bg-cyan-600 text-white rounded-full shadow border border-white flex items-center justify-center opacity-85 hover:opacity-100 hover:scale-125 transition-all">
-              <span style="font-size: 8px; font-weight: bold;">●</span>
-            </div>
-          `,
-          iconSize: [16, 16],
-          iconAnchor: [8, 8]
-        });
-
-        const otherMarker = L.marker([otherSite.latitude, otherSite.longitude], { icon: otherIcon }).addTo(layerGroup);
-        otherMarker.bindTooltip(`${otherSite.name} (${otherSite.capacity_mw} MW)`, { direction: 'top', offset: [0, -8] });
-      });
-
       mapInstanceRef.current = map;
       setIsLoaded(true);
+
       setTimeout(() => {
         try {
           map.invalidateSize();
         } catch (_) {}
       }, 250);
     } catch (err) {
-      console.warn('Leaflet map initialization fallback:', err);
+      console.warn('Leaflet map initialization warning:', err);
     }
 
     return () => {
       if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
+        try {
+          mapInstanceRef.current.remove();
+        } catch (_) {}
         mapInstanceRef.current = null;
+        layerGroupRef.current = null;
+        satelliteLayerRef.current = null;
+        streetLayerRef.current = null;
+      }
+      if (container && container._leaflet_id) {
+        delete container._leaflet_id;
       }
     };
-  }, [site?.id, lat, lon, mapType]);
+  }, []);
+
+  // 2. Toggle active tile layer when mapType changes
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    const sat = satelliteLayerRef.current;
+    const str = streetLayerRef.current;
+    if (!map || !sat || !str) return;
+
+    if (mapType === 'satellite') {
+      if (map.hasLayer(str)) map.removeLayer(str);
+      if (!map.hasLayer(sat)) sat.addTo(map);
+    } else {
+      if (map.hasLayer(sat)) map.removeLayer(sat);
+      if (!map.hasLayer(str)) str.addTo(map);
+    }
+  }, [mapType]);
+
+  // 3. Smoothly pan to new site coordinates and update pins without destroying the map
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    const layerGroup = layerGroupRef.current;
+    if (!map || !layerGroup) return;
+
+    // Smoothly fly to new plant location
+    map.flyTo([lat, lon], 11, {
+      duration: 1.0,
+      easeLinearity: 0.25
+    });
+
+    // Clear old markers and redraw
+    layerGroup.clearLayers();
+
+    // Custom pulsing emerald pin marker for the active plant
+    const primaryIcon = L.divIcon({
+      className: 'custom-field-pin',
+      html: `
+        <div class="relative flex items-center justify-center">
+          <div class="absolute w-8 h-8 bg-emerald-500/30 rounded-full animate-ping"></div>
+          <div class="relative w-7 h-7 bg-emerald-600 text-white rounded-full shadow-lg border-2 border-white flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+            </svg>
+          </div>
+        </div>
+      `,
+      iconSize: [28, 28],
+      iconAnchor: [14, 28],
+      popupAnchor: [0, -28]
+    });
+
+    const marker = L.marker([lat, lon], { icon: primaryIcon }).addTo(layerGroup);
+    marker.bindPopup(`
+      <div style="font-family: sans-serif; font-size: 11px; padding: 2px;">
+        <strong style="font-size: 12px; color: #0f172a; display: block; margin-bottom: 2px;">${site?.name || 'Renewable Asset'}</strong>
+        <span style="color: #059669; font-weight: 600;">${site?.capacity_mw || 0} MW ${site?.type?.toUpperCase() || ''}</span>
+        <div style="color: #64748b; font-size: 10px; margin-top: 2px;">${Number(lat).toFixed(4)}° N, ${Number(lon).toFixed(4)}° E</div>
+      </div>
+    `).openPopup();
+
+    // Plot other nearby fleet sites if available in the same region
+    sites.forEach(otherSite => {
+      if (otherSite.id === site?.id || !otherSite.latitude || !otherSite.longitude) return;
+      const otherIcon = L.divIcon({
+        className: 'other-site-pin',
+        html: `
+          <div class="w-4 h-4 bg-cyan-600 text-white rounded-full shadow border border-white flex items-center justify-center opacity-85 hover:opacity-100 hover:scale-125 transition-all">
+            <span style="font-size: 8px; font-weight: bold;">●</span>
+          </div>
+        `,
+        iconSize: [16, 16],
+        iconAnchor: [8, 8]
+      });
+
+      const otherMarker = L.marker([otherSite.latitude, otherSite.longitude], { icon: otherIcon }).addTo(layerGroup);
+      otherMarker.bindTooltip(`${otherSite.name} (${otherSite.capacity_mw} MW)`, { direction: 'top', offset: [0, -8] });
+    });
+
+    setTimeout(() => {
+      try {
+        map.invalidateSize();
+      } catch (_) {}
+    }, 200);
+  }, [site?.id, lat, lon, sites]);
 
   const handleZoomIn = () => {
     if (mapInstanceRef.current) mapInstanceRef.current.zoomIn();

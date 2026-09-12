@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import DataProvenanceBadge from './DataProvenanceBadge';
 
 export default function MultiSiteFleetScreen({ onSelectSite, onNavigateTab }) {
   const [fleet, setFleet] = useState([]);
@@ -77,6 +78,7 @@ export default function MultiSiteFleetScreen({ onSelectSite, onNavigateTab }) {
                     {criticalSite.isAlert ? 'Critical Fleet Action Required' : 'Active Grid Advisory Watch'}
                   </span>
                   <span className="text-xs text-slate-500 font-mono">Asset: {criticalSite.name}</span>
+                  <DataProvenanceBadge type="decision-engine" align="left" />
                 </div>
                 <p className="text-xs text-slate-700 mt-1 max-w-3xl leading-relaxed">
                   <strong className="text-slate-900 font-semibold">{criticalSite.name} ({criticalSite.interconnect})</strong>: {criticalSite.action}. Current generation is <strong className="text-slate-900">{criticalSite.liveGen}</strong> ({criticalSite.capPct} of {criticalSite.nameplate}). Response window: <span className="font-semibold text-rose-700 underline underline-offset-2">{criticalSite.window}</span>.
@@ -163,14 +165,29 @@ export default function MultiSiteFleetScreen({ onSelectSite, onNavigateTab }) {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50 text-slate-500 text-[11px] font-bold uppercase tracking-wider border-b border-slate-200/80">
-                    <th className="py-3 px-4">Site Name & Interconnect</th>
+                    <th className="py-3 px-4">
+                      <div className="flex items-center gap-1">
+                        <span>Site Name & Interconnect</span>
+                        <DataProvenanceBadge type="real-specs" compact={true} align="left" />
+                      </div>
+                    </th>
                     <th className="py-3 px-2">Tech</th>
                     <th className="py-3 px-2">Nameplate</th>
-                    <th className="py-3 px-2">Live Gen</th>
+                    <th className="py-3 px-2">
+                      <div className="flex items-center gap-1">
+                        <span>Live Gen</span>
+                        <DataProvenanceBadge type="ml-forecast" compact={true} align="left" />
+                      </div>
+                    </th>
                     <th className="py-3 px-2">24h Peak</th>
                     <th className="py-3 px-2">Risk State</th>
                     <th className="py-3 px-2">Window</th>
-                    <th className="py-3 px-3">AI Recommended Action</th>
+                    <th className="py-3 px-3">
+                      <div className="flex items-center gap-1">
+                        <span>AI Recommended Action</span>
+                        <DataProvenanceBadge type="decision-engine" compact={true} align="right" />
+                      </div>
+                    </th>
                     <th className="py-3 px-4 text-right">Intervention</th>
                   </tr>
                 </thead>

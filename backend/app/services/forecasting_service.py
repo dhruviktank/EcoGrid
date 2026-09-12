@@ -33,19 +33,35 @@ _prophet_model = ProphetRenewableModel()
 
 # Load historical SCADA dataset for training/baseline if available
 HIST_PATH = os.path.join(REPO_ROOT, "data", "historical_generation_dummy.csv")
+DRYAD_WIND_PATH = os.path.join(REPO_ROOT, "data", "dryad_offshore_wind_generation.csv")
 _historical_cache: Dict[str, List[Dict[str, Any]]] = {}
 
 def _get_site_history(site_id: str) -> List[Dict[str, Any]]:
     global _historical_cache
     if site_id in _historical_cache:
         return _historical_cache[site_id]
+
+    # Check Dryad offshore wind dataset first
+    if os.path.exists(DRYAD_WIND_PATH):
+        try:
+            df = pd.read_csv(DRYAD_WIND_PATH)
+            site_df = df[df["site_id"] == site_id]
+            if not site_df.empty:
+                records = site_df.tail(72).to_dict(orient="records")
+                _historical_cache[site_id] = records
+                return records
+        except Exception:
+            pass
+
+    # Fallback to general historical CSV
     if os.path.exists(HIST_PATH):
         try:
             df = pd.read_csv(HIST_PATH)
             site_df = df[df["site_id"] == site_id]
-            records = site_df.tail(72).to_dict(orient="records")
-            _historical_cache[site_id] = records
-            return records
+            if not site_df.empty:
+                records = site_df.tail(72).to_dict(orient="records")
+                _historical_cache[site_id] = records
+                return records
         except Exception:
             pass
     return []

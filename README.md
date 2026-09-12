@@ -56,5 +56,5 @@ cd backend
 ---
 
 ## Detailed Documentation
-For the full evaluation specification including mathematical formulas, feature engineering details, empirical backtest tables, API schema, and decision rule architecture, see:
-👉 **[PROJECT_EVALUATION_DOCUMENT.md](file:///Users/dhruviktank/Desktop/Hackout/EcoGrid/PROJECT_EVALUATION_DOCUMENT.md)**
+- 👉 **[PROJECT_EVALUATION_DOCUMENT.md](file:///Users/dhruviktank/Desktop/Hackout/EcoGrid/PROJECT_EVALUATION_DOCUMENT.md)**: Full project evaluation specification, mathematical formulas, feature engineering, empirical backtest tables, API schema, and decision rule architecture.
+- 👉 **[SYSTEM_DATA_AND_ARCHITECTURE_REPORT.md](file:///Users/dhruviktank/Desktop/Hackout/EcoGrid/SYSTEM_DATA_AND_ARCHITECTURE_REPORT.md)**: Exhaustive component-by-component data breakdown, real vs. dummy classification across all settings, backend prediction pipeline, and production data requirements.
